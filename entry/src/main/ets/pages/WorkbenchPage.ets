@@ -64,6 +64,8 @@ export struct WorkbenchPage {
     .onClick(() => {
       if (title === '教室申请') {
         this.page = 1;
+      } else if (title === '调课申请') {
+        this.page = 2;
       } else {
         this.showMessage(active ? `${title}功能即将接入` : `${title}开发中`);
       }

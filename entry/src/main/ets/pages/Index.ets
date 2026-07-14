@@ -12,6 +12,9 @@ import { AdminTeacherPage } from './AdminTeacherPage';
 import { AdminClassroomPage } from './AdminClassroomPage';
 import { CourseDetailPage } from './CourseDetailPage';
 import { AdminCoursePage } from './AdminCoursePage';
+import { AdminClassroomRequestPage } from './AdminClassroomRequestPage';
+import { ScheduleChangePage } from './ScheduleChangePage';
+import { ExamPage } from './ExamPage';
 import { ProfilePage } from './ProfilePage';
 import { AnnouncementPage } from './AnnouncementPage';
 
@@ -228,12 +231,18 @@ struct Index {
             AdminCoursePage({ page: $adminPage, selectedCourseId: $selectedCourseId })
           } else if (this.adminPage === 5) {
             CourseDetailPage({ page: $adminPage, courseId: $selectedCourseId })
+          } else if (this.adminPage === 6) {
+            AdminClassroomRequestPage({ page: $adminPage })
+          } else if (this.adminPage === 7) {
+            ExamPage({ page: $adminPage })
           } else {
             AdminWorkbenchPage({ user: this.currentUser, page: $adminPage })
           }
         } else {
           if (this.workbenchPage === 1) {
             ClassroomRequestPage({ user: this.currentUser, page: $workbenchPage })
+          } else if (this.workbenchPage === 2) {
+            ScheduleChangePage({ page: $workbenchPage })
           } else {
             WorkbenchPage({ user: this.currentUser, page: $workbenchPage })
           }

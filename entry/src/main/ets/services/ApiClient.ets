@@ -11,6 +11,9 @@ import {
   StudentDetail,
   StudentPage,
   StudentOptions,
+  StudentOptionMajor,
+  StudentOptionClassGroup,
+  DepartmentInfo,
   StudentMutationRequest,
   TeacherListItem,
   TeacherPage,
@@ -22,7 +25,18 @@ import {
   ClassroomListItem,
   ClassroomMutationRequest,
   CourseDetail,
-  CourseSummary
+  CourseSummary,
+  ClassroomRequestPage,
+  ClassroomRequestListItem,
+  ClassroomRequestMutationRequest
+  , ClassroomRequestUpdateRequest
+  , ClassroomRequestStatusMutation,
+  ScheduleChangeListItem,
+  ScheduleChangeMutationRequest
+  , ScheduleChangePage,
+  ExamListItem,
+  ExamMutationRequest,
+  ExamPage
 } from '../models/ApiModels';
 
 interface JsonHeaders {
@@ -49,6 +63,27 @@ interface TeacherListResponse {
 
 interface ClassroomListResponse {
   list: ClassroomListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+interface ClassroomRequestListResponse {
+  list: ClassroomRequestListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+interface ScheduleChangeListResponse {
+  list: ScheduleChangeListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+interface ExamListResponse {
+  list: ExamListItem[];
   total: number;
   page: number;
   pageSize: number;
@@ -233,6 +268,104 @@ export class ApiClient {
     if (departmentId !== undefined && departmentId > 0) params.push(`departmentId=${departmentId}`);
     const query = params.length > 0 ? `?${params.join('&')}` : '';
     return ApiClient.request<CourseSummary[]>(`/base-data/courses${query}`, http.RequestMethod.GET, undefined, true);
+  }
+
+  static async getDepartments(keyword: string = ''): Promise<DepartmentInfo[]> {
+    const query = keyword.trim().length > 0 ? `?keyword=${encodeURIComponent(keyword.trim())}` : '';
+    return ApiClient.request<DepartmentInfo[]>(`/base-data/departments${query}`, http.RequestMethod.GET, undefined, true);
+  }
+
+  static async getMajors(departmentId?: number, keyword: string = ''): Promise<StudentOptionMajor[]> {
+    const params: string[] = [];
+    if (departmentId !== undefined && departmentId > 0) params.push(`departmentId=${departmentId}`);
+    if (keyword.trim().length > 0) params.push(`keyword=${encodeURIComponent(keyword.trim())}`);
+    return ApiClient.request<StudentOptionMajor[]>(`/base-data/majors${params.length > 0 ? `?${params.join('&')}` : ''}`, http.RequestMethod.GET, undefined, true);
+  }
+
+  static async getClassGroups(departmentId?: number, majorId?: number, grade?: number): Promise<StudentOptionClassGroup[]> {
+    const params: string[] = [];
+    if (departmentId !== undefined && departmentId > 0) params.push(`departmentId=${departmentId}`);
+    if (majorId !== undefined && majorId > 0) params.push(`majorId=${majorId}`);
+    if (grade !== undefined && grade > 0) params.push(`grade=${grade}`);
+    return ApiClient.request<StudentOptionClassGroup[]>(`/base-data/class-groups${params.length > 0 ? `?${params.join('&')}` : ''}`, http.RequestMethod.GET, undefined, true);
+  }
+
+  static async getClassroomRequests(page: number = 1, pageSize: number = 10, status: string = '', applicantId?: number): Promise<ClassroomRequestPage> {
+    const params: string[] = [`page=${page}`, `pageSize=${pageSize}`];
+    if (status.length > 0) params.push(`status=${encodeURIComponent(status)}`);
+    if (applicantId !== undefined && applicantId > 0) params.push(`applicantId=${applicantId}`);
+    const result = await ApiClient.request<ClassroomRequestListResponse>(`/classroom-requests?${params.join('&')}`, http.RequestMethod.GET, undefined, true);
+    return { items: result.list ?? [], total: result.total ?? 0, page: result.page ?? page, pageSize: result.pageSize ?? pageSize, totalPages: Math.max(1, Math.ceil((result.total ?? 0) / (result.pageSize ?? pageSize))) };
+  }
+
+  static async getClassroomRequest(id: number): Promise<ClassroomRequestListItem> {
+    return ApiClient.request<ClassroomRequestListItem>(`/classroom-requests/${id}`, http.RequestMethod.GET, undefined, true);
+  }
+
+  static async createClassroomRequest(data: ClassroomRequestMutationRequest): Promise<ClassroomRequestListItem> {
+    return ApiClient.request<ClassroomRequestListItem>('/classroom-requests', http.RequestMethod.POST, data, true);
+  }
+
+  static async updateClassroomRequestStatus(id: number, status: string, comment?: string): Promise<ClassroomRequestListItem> {
+    const data: ClassroomRequestStatusMutation = { status, comment };
+    return ApiClient.request<ClassroomRequestListItem>(`/classroom-requests/${id}/status`, 'PATCH' as http.RequestMethod, data, true);
+  }
+
+  static async deleteClassroomRequest(id: number): Promise<DeleteResult> {
+    return ApiClient.request<DeleteResult>(`/classroom-requests/${id}`, http.RequestMethod.DELETE, undefined, true);
+  }
+
+  static async updateClassroomRequest(id: number, data: ClassroomRequestUpdateRequest): Promise<ClassroomRequestListItem> {
+    return ApiClient.request<ClassroomRequestListItem>(`/classroom-requests/${id}`, 'PATCH' as http.RequestMethod, data, true);
+  }
+
+  static async getScheduleChanges(page: number = 1, pageSize: number = 10, status: string = ''): Promise<ScheduleChangePage> {
+    const query = `page=${page}&pageSize=${pageSize}${status.length > 0 ? `&status=${encodeURIComponent(status)}` : ''}`;
+    const result = await ApiClient.request<ScheduleChangeListResponse>(`/schedule-changes?${query}`, http.RequestMethod.GET, undefined, true);
+    return { items: result.list ?? [], total: result.total ?? 0, page: result.page ?? page, pageSize: result.pageSize ?? pageSize, totalPages: Math.max(1, Math.ceil((result.total ?? 0) / (result.pageSize ?? pageSize))) };
+  }
+
+  static async createScheduleChange(data: ScheduleChangeMutationRequest): Promise<ScheduleChangeListItem> {
+    return ApiClient.request<ScheduleChangeListItem>('/schedule-changes', http.RequestMethod.POST, data, true);
+  }
+
+  static async getScheduleChange(id: number): Promise<ScheduleChangeListItem> {
+    return ApiClient.request<ScheduleChangeListItem>(`/schedule-changes/${id}`, http.RequestMethod.GET, undefined, true);
+  }
+
+  static async updateScheduleChangeStatus(id: number, status: string, comment?: string): Promise<ScheduleChangeListItem> {
+    const data: ClassroomRequestStatusMutation = { status, comment };
+    return ApiClient.request<ScheduleChangeListItem>(`/schedule-changes/${id}/status`, 'PATCH' as http.RequestMethod, data, true);
+  }
+
+  static async updateScheduleChange(id: number, data: ScheduleChangeMutationRequest): Promise<ScheduleChangeListItem> {
+    return ApiClient.request<ScheduleChangeListItem>(`/schedule-changes/${id}`, 'PATCH' as http.RequestMethod, data, true);
+  }
+
+  static async deleteScheduleChange(id: number): Promise<DeleteResult> {
+    return ApiClient.request<DeleteResult>(`/schedule-changes/${id}`, http.RequestMethod.DELETE, undefined, true);
+  }
+
+  static async getExams(page: number = 1, pageSize: number = 10, keyword: string = ''): Promise<ExamPage> {
+    const query = `page=${page}&pageSize=${pageSize}${keyword.trim().length > 0 ? `&keyword=${encodeURIComponent(keyword.trim())}` : ''}`;
+    const result = await ApiClient.request<ExamListResponse>(`/exams?${query}`, http.RequestMethod.GET, undefined, true);
+    return { items: result.list ?? [], total: result.total ?? 0, page: result.page ?? page, pageSize: result.pageSize ?? pageSize, totalPages: Math.max(1, Math.ceil((result.total ?? 0) / (result.pageSize ?? pageSize))) };
+  }
+
+  static async getExam(id: number): Promise<ExamListItem> {
+    return ApiClient.request<ExamListItem>(`/exams/${id}`, http.RequestMethod.GET, undefined, true);
+  }
+
+  static async createExam(data: ExamMutationRequest): Promise<ExamListItem> {
+    return ApiClient.request<ExamListItem>('/exams', http.RequestMethod.POST, data, true);
+  }
+
+  static async updateExam(id: number, data: ExamMutationRequest): Promise<ExamListItem> {
+    return ApiClient.request<ExamListItem>(`/exams/${id}`, 'PATCH' as http.RequestMethod, data, true);
+  }
+
+  static async deleteExam(id: number): Promise<DeleteResult> {
+    return ApiClient.request<DeleteResult>(`/exams/${id}`, http.RequestMethod.DELETE, undefined, true);
   }
 
   private static normalizeUser(user: UserInfo): UserInfo {

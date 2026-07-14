@@ -36,6 +36,10 @@ export struct AdminWorkbenchPage {
         this.page = 3;
       } else if (title === '课程管理') {
         this.page = 4;
+      } else if (title === '教室申请审批') {
+        this.page = 6;
+      } else if (title === '考试安排') {
+        this.page = 7;
       } else {
         this.showMessage(`${title}入口已准备，下一步接入接口`);
       }
@@ -56,10 +60,12 @@ export struct AdminWorkbenchPage {
         this.adminRow('师', '教师管理', '维护教师档案和账号关联', '基础数据')
         this.adminRow('课', '课程管理', '维护课程、学分和负责人', '基础数据')
         this.adminRow('室', '教室管理', '维护校区、楼栋和教室状态', '基础数据')
+        this.adminRow('审', '教室申请审批', '审批教师和学生的教室使用申请', '教务管理员')
         this.adminRow('期', '学期管理', '维护学期和当前学期状态', '基础数据')
         Text('系统管理').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#29445A').width('100%').margin({ top: 10 })
         this.adminRow('权', '用户与角色', '管理账号、角色和启停状态', '权限管理')
         this.adminRow('志', '操作日志', '查询管理员操作和审计记录', '审计')
+        this.adminRow('考', '考试安排', '维护学期考试、考场和监考教师', '教务管理')
       }.width('100%').padding({ left: 20, right: 20, top: 24, bottom: 20 })
     }.layoutWeight(1).width('100%')
   }

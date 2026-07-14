@@ -1,4 +1,5 @@
-import { UserInfo } from '../models/ApiModels';
+import { UserInfo, ClassroomRequestListItem, ClassroomListItem, ClassroomRequestMutationRequest, ClassroomRequestUpdateRequest } from '../models/ApiModels';
+import { ApiClient } from '../services/ApiClient';
 
 interface RequestClassroomPreview {
   id: number;
@@ -35,6 +36,7 @@ export struct ClassroomRequestPage {
   @State formVisible: boolean = false;
   @State detailVisible: boolean = false;
   @State cancelVisible: boolean = false;
+  @State editingRequestId: number = 0;
   @State startTime: string = '';
   @State endTime: string = '';
   @State participantCount: string = '';
@@ -57,7 +59,7 @@ export struct ClassroomRequestPage {
     }
   ];
 
-  private classrooms: RequestClassroomPreview[] = [
+  @State classrooms: RequestClassroomPreview[] = [
     { id: 1, campus: '主校区', building: '第一教学楼', roomNo: 'A101', type: '多媒体教室', capacity: 80 },
     { id: 2, campus: '主校区', building: '第一教学楼', roomNo: 'A203', type: '智慧教室', capacity: 48 },
     { id: 3, campus: '主校区', building: '第二教学楼', roomNo: 'B305', type: '普通教室', capacity: 60 },
@@ -67,6 +69,27 @@ export struct ClassroomRequestPage {
   private campuses: string[] = ['主校区', '沙河校区'];
   private classroomTypes: string[] = ['多媒体教室', '智慧教室', '普通教室', '机房', '实验室'];
   private capacityLevels: number[] = [30, 50, 80];
+
+  aboutToAppear(): void { void this.loadRemoteData(); }
+
+  private async loadRemoteData(): Promise<void> {
+    try {
+      const classrooms = await ApiClient.getClassrooms(1, 100);
+      this.classrooms = classrooms.items.map((item: ClassroomListItem): RequestClassroomPreview => ({
+        id: item.id, campus: item.campus ?? '', building: item.building ?? '', roomNo: item.roomNo,
+        type: item.type ?? '', capacity: item.capacity
+      }));
+      const requests = await ApiClient.getClassroomRequests(1, 100, '', this.user.id);
+      this.requests = requests.items.map((item: ClassroomRequestListItem): ClassroomRequestPreview => ({
+        id: item.id, classroomId: item.classroomId, classroomName: item.classroomRoomNo,
+        classroomLocation: `${item.classroomCampus ?? ''} · ${item.classroomBuilding ?? ''}`,
+        startTime: item.startTime, endTime: item.endTime, participantCount: item.participantCount,
+        purpose: item.purpose, status: item.status
+      }));
+    } catch (error) {
+      this.showToast(error instanceof Error ? error.message : '加载教室申请数据失败');
+    }
+  }
 
   private visibleClassrooms(): RequestClassroomPreview[] {
     const keyword = this.keyword.trim().toLowerCase();
@@ -119,6 +142,7 @@ export struct ClassroomRequestPage {
 
   private openApplication(item: RequestClassroomPreview): void {
     this.selectedClassroom = item;
+    this.editingRequestId = 0;
     this.startTime = '';
     this.endTime = '';
     this.participantCount = '';
@@ -126,11 +150,23 @@ export struct ClassroomRequestPage {
     this.formVisible = true;
   }
 
+  private openEditRequest(item: ClassroomRequestPreview): void {
+    const classroom = this.classrooms.find((v: RequestClassroomPreview) => v.id === item.classroomId);
+    this.selectedClassroom = classroom ?? { id: item.classroomId, campus: '', building: '', roomNo: item.classroomName, type: '', capacity: item.participantCount };
+    this.editingRequestId = item.id;
+    this.startTime = item.startTime.substring(0, 16).replace('T', ' ');
+    this.endTime = item.endTime.substring(0, 16).replace('T', ' ');
+    this.participantCount = `${item.participantCount}`;
+    this.purpose = item.purpose;
+    this.detailVisible = false;
+    this.formVisible = true;
+  }
+
   private validTime(value: string): boolean {
     return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(value);
   }
 
-  private submitApplication(): void {
+  private async submitApplication(): Promise<void> {
     if (this.selectedClassroom === null) return;
     const count = Number(this.participantCount);
     if (!this.validTime(this.startTime) || !this.validTime(this.endTime)) {
@@ -151,21 +187,24 @@ export struct ClassroomRequestPage {
       this.showToast('请填写使用用途和申请说明');
       return;
     }
-    const request: ClassroomRequestPreview = {
-      id: this.nextRequestId(),
-      classroomId: this.selectedClassroom.id,
-      classroomName: this.selectedClassroom.roomNo,
-      classroomLocation: `${this.selectedClassroom.campus} · ${this.selectedClassroom.building}`,
-      startTime: this.startTime,
-      endTime: this.endTime,
-      participantCount: count,
-      purpose: this.purpose.trim(),
-      status: 'PENDING'
-    };
-    this.requests = [request, ...this.requests];
-    this.formVisible = false;
-    this.activeTab = 1;
-    this.showToast('静态预览：申请已提交，等待审批');
+    try {
+      const editing = this.editingRequestId > 0;
+      const payload: ClassroomRequestMutationRequest = { classroomId: this.selectedClassroom.id, participantCount: count, startTime: new Date(start).toISOString(), endTime: new Date(end).toISOString(), purpose: this.purpose.trim() };
+      if (editing) {
+        const updatePayload: ClassroomRequestUpdateRequest = { classroomId: payload.classroomId, participantCount: payload.participantCount, startTime: payload.startTime, endTime: payload.endTime, purpose: payload.purpose };
+        await ApiClient.updateClassroomRequest(this.editingRequestId, updatePayload);
+      } else {
+        payload.status = 'PENDING';
+        await ApiClient.createClassroomRequest(payload);
+      }
+      this.formVisible = false;
+      this.editingRequestId = 0;
+      this.activeTab = 1;
+      await this.loadRemoteData();
+      this.showToast(editing ? '申请已更新' : '申请已提交，等待审批');
+    } catch (error) {
+      this.showToast(error instanceof Error ? error.message : '提交申请失败');
+    }
   }
 
   private nextRequestId(): number {
@@ -179,23 +218,19 @@ export struct ClassroomRequestPage {
     this.detailVisible = true;
   }
 
-  private cancelRequest(): void {
+  private async cancelRequest(): Promise<void> {
     if (this.selectedRequest === null) return;
     const id = this.selectedRequest.id;
-    this.requests = this.requests.map((item: ClassroomRequestPreview) => {
-      if (item.id === id) {
-        return {
-          id: item.id, classroomId: item.classroomId, classroomName: item.classroomName,
-          classroomLocation: item.classroomLocation, startTime: item.startTime, endTime: item.endTime,
-          participantCount: item.participantCount, purpose: item.purpose, status: 'CANCELLED'
-        };
-      }
-      return item;
-    });
-    this.cancelVisible = false;
-    this.detailVisible = false;
-    this.selectedRequest = null;
-    this.showToast('静态预览：申请已取消');
+    try {
+      await ApiClient.deleteClassroomRequest(id);
+      this.cancelVisible = false;
+      this.detailVisible = false;
+      this.selectedRequest = null;
+      await this.loadRemoteData();
+      this.showToast('申请已取消');
+    } catch (error) {
+      this.showToast(error instanceof Error ? error.message : '当前申请不可取消');
+    }
   }
 
   private showToast(message: string): void {
@@ -353,6 +388,9 @@ export struct ClassroomRequestPage {
             Text(this.selectedRequest.purpose).fontSize(14).fontColor('#17324D').width('100%')
           }.width('100%').alignItems(HorizontalAlign.Start)
           if (this.selectedRequest.status === 'PENDING' || this.selectedRequest.status === 'DRAFT') {
+            if (this.selectedRequest.status === 'DRAFT') {
+              Button('编辑草稿').width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.openEditRequest(this.selectedRequest as ClassroomRequestPreview))
+            }
             Button('取消申请').width('100%').backgroundColor('#F7E5E5').fontColor('#B04A4A').onClick(() => this.cancelVisible = true)
           }
         }.width('88%').padding(20).backgroundColor(Color.White).borderRadius(20)

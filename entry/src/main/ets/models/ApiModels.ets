@@ -162,6 +162,137 @@ export interface CourseSummary {
   directorName?: string | null;
 }
 
+export interface ClassroomRequestListItem {
+  id: number;
+  applicantId: number;
+  applicantName: string;
+  applicantUsername: string;
+  classroomId: number;
+  classroomRoomNo: string;
+  classroomCampus?: string | null;
+  classroomBuilding?: string | null;
+  classroomType?: string | null;
+  classroomCapacity?: number | null;
+  classroomStatus?: string | null;
+  participantCount: number;
+  startTime: string;
+  endTime: string;
+  purpose: string;
+  status: string;
+  latestApproval?: ClassroomApproval | null;
+  approvalHistory?: ClassroomApproval[];
+}
+
+export interface ClassroomApproval {
+  id: number;
+  action: string;
+  comment?: string | null;
+  createdAt: string;
+  operator?: ClassroomApprovalOperator;
+}
+
+export interface ClassroomApprovalOperator {
+  id: number;
+  username: string;
+  name: string;
+  role: string;
+}
+
+export interface ClassroomRequestPage {
+  items: ClassroomRequestListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface ClassroomRequestMutationRequest {
+  classroomId: number;
+  participantCount: number;
+  startTime: string;
+  endTime: string;
+  purpose: string;
+  status?: string;
+}
+
+export interface ClassroomRequestUpdateRequest {
+  classroomId?: number;
+  participantCount?: number;
+  startTime?: string;
+  endTime?: string;
+  purpose?: string;
+}
+
+export interface ClassroomRequestStatusMutation {
+  status: string;
+  comment?: string;
+}
+
+export interface ScheduleChangeListItem {
+  id: number;
+  teacherId: number;
+  teacherName?: string | null;
+  courseId: number;
+  courseName?: string | null;
+  classGroupId: number;
+  classGroupName?: string | null;
+  hours: number;
+  reason: string;
+  status: string;
+  latestApproval?: ClassroomApproval | null;
+  approvalHistory?: ClassroomApproval[];
+}
+
+export interface ScheduleChangeMutationRequest {
+  teacherId: number;
+  courseId: number;
+  classGroupId: number;
+  hours: number;
+  reason: string;
+  status?: string;
+}
+
+export interface ScheduleChangePage {
+  items: ScheduleChangeListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface ExamListItem {
+  id: number;
+  semesterId: number;
+  courseId: number;
+  courseName?: string | null;
+  classGroupId: number;
+  classGroupName?: string | null;
+  classroomId: number;
+  classroomRoomNo?: string | null;
+  invigilatorId?: number | null;
+  invigilatorName?: string | null;
+  startTime: string;
+  endTime: string;
+}
+
+export interface ExamMutationRequest {
+  semesterId: number;
+  courseId: number;
+  classGroupId: number;
+  classroomId: number;
+  startTime: string;
+  endTime: string;
+  invigilatorId?: number | null;
+}
+
+export interface ExamPage {
+  items: ExamListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export interface LinkedUserInfo {
   id: number;
   username?: string;
