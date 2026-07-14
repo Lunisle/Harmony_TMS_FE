@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "教学过程管理系统原生客户端"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "教学过程管理系统"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "教学管理"
+    }
+  ]
+}
