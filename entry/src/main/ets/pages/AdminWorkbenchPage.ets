@@ -27,7 +27,19 @@ export struct AdminWorkbenchPage {
     }
     .width('100%').padding(16).backgroundColor(Color.White).borderRadius(16)
     .shadow({ radius: 10, color: '#10000000', offsetY: 3 })
-    .onClick(() => title === '学生管理' ? this.page = 1 : this.showMessage(`${title}入口已准备，下一步接入接口`))
+    .onClick(() => {
+      if (title === '学生管理') {
+        this.page = 1;
+      } else if (title === '教师管理') {
+        this.page = 2;
+      } else if (title === '教室管理') {
+        this.page = 3;
+      } else if (title === '课程管理') {
+        this.page = 4;
+      } else {
+        this.showMessage(`${title}入口已准备，下一步接入接口`);
+      }
+    })
   }
 
   build() {
