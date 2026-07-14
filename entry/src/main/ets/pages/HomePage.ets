@@ -1,8 +1,10 @@
 import { UserInfo } from '../models/ApiModels';
+import { STATIC_ANNOUNCEMENTS } from '../models/AnnouncementModels';
 
 @Component
 export struct HomePage {
   @Prop user: UserInfo;
+  @Link announcementId: number;
 
   @Builder
   private banner(image: Resource, title: string, subtitle: string) {
@@ -34,7 +36,7 @@ export struct HomePage {
   }
 
   @Builder
-  private notice(title: string, date: string, isFirst: boolean) {
+  private notice(id: number, title: string, date: string, isFirst: boolean) {
     Row({ space: 12 }) {
       Column()
         .width(5)
@@ -54,6 +56,7 @@ export struct HomePage {
     .width('100%')
     .padding({ top: 13, bottom: 13 })
     .border({ width: { bottom: 1 }, color: '#EDF1F3' })
+    .onClick(() => this.announcementId = id)
   }
 
   build() {
@@ -100,9 +103,9 @@ export struct HomePage {
             .fontColor('#17324D')
             .width('100%')
           Column() {
-            this.notice('2026 年秋季学期教学工作安排通知', '2026.07.24', true)
-            this.notice('期末考试考场规则与注意事项', '2026.07.18', false)
-            this.notice('教学场地申请系统服务说明', '2026.07.12', false)
+            this.notice(STATIC_ANNOUNCEMENTS[0].id, STATIC_ANNOUNCEMENTS[0].title, STATIC_ANNOUNCEMENTS[0].date, true)
+            this.notice(STATIC_ANNOUNCEMENTS[1].id, STATIC_ANNOUNCEMENTS[1].title, STATIC_ANNOUNCEMENTS[1].date, false)
+            this.notice(STATIC_ANNOUNCEMENTS[2].id, STATIC_ANNOUNCEMENTS[2].title, STATIC_ANNOUNCEMENTS[2].date, false)
           }
           .width('100%')
           .margin({ top: 8 })
@@ -110,6 +113,10 @@ export struct HomePage {
           .backgroundColor(Color.White)
           .borderRadius(16)
           .shadow({ radius: 12, color: '#10000000', offsetY: 4 })
+          Row() {
+            Text('查看全部公告').fontSize(13).fontColor('#176B87').layoutWeight(1)
+            Text('›').fontSize(20).fontColor('#176B87')
+          }.width('100%').padding({ top: 10, left: 16, right: 16 }).onClick(() => this.announcementId = -2)
         }
         .width('100%')
       }

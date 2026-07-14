@@ -8,6 +8,7 @@ import { WorkbenchPage } from './WorkbenchPage';
 import { AdminWorkbenchPage } from './AdminWorkbenchPage';
 import { AdminStudentPage } from './AdminStudentPage';
 import { ProfilePage } from './ProfilePage';
+import { AnnouncementPage } from './AnnouncementPage';
 
 @Entry
 @Component
@@ -24,6 +25,7 @@ struct Index {
   @State loggedIn: boolean = false;
   @State selectedTab: number = 0;
   @State adminPage: number = 0;
+  @State announcementId: number = -1;
   @State currentUser: UserInfo = { id: 0, username: '', role: '', student: null };
 
   aboutToAppear(): void {
@@ -196,7 +198,11 @@ struct Index {
   private workspaceView() {
     Column() {
       if (this.selectedTab === 0) {
-        HomePage({ user: this.currentUser })
+        if (this.announcementId >= -2 && this.announcementId !== -1) {
+          AnnouncementPage({ announcementId: $announcementId })
+        } else {
+          HomePage({ user: this.currentUser, announcementId: $announcementId })
+        }
       } else if (this.selectedTab === 1) {
         if (this.currentUser.role === 'ADMIN' || this.currentUser.role === 'ACADEMIC' || this.currentUser.role === 'DEPARTMENT_ADMIN') {
           if (this.adminPage === 1) {

@@ -44,6 +44,8 @@ export interface StudentListItem {
   status: string;
   phone?: string | null;
   user?: LinkedUserInfo | null;
+  activated?: boolean;
+  enabled?: boolean;
   departmentId?: number | null;
   departmentName?: string | null;
   majorId?: number | null;
@@ -56,6 +58,11 @@ export interface StudentPage {
   page: number;
   pageSize: number;
   totalPages: number;
+}
+
+export interface StudentDetail extends StudentListItem {
+  activated: boolean;
+  enabled: boolean;
 }
 
 export interface UserInfo {

@@ -7,7 +7,8 @@ import {
   RegisterData,
   RegisterRequest,
   UserInfo,
-  StudentListItem
+  StudentListItem,
+  StudentDetail
   ,StudentPage
 } from '../models/ApiModels';
 
@@ -68,13 +69,16 @@ export class ApiClient {
     return ApiClient.normalizeUser(user);
   }
 
-  static async getStudents(page: number = 1, pageSize: number = 20, keyword: string = '', status: string = '', enabled?: boolean): Promise<StudentPage> {
+  static async getStudents(page: number = 1, pageSize: number = 20, keyword: string = '', status: string = '', enabled?: boolean, grade?: number, departmentId?: number, majorId?: number, classGroupId?: number, activated?: boolean): Promise<StudentPage> {
     const params: string[] = [`page=${page}`, `pageSize=${pageSize}`];
     if (keyword.length > 0) params.push(`keyword=${encodeURIComponent(keyword)}`);
     if (status.length > 0) params.push(`status=${status}`);
-    // The team's student list intentionally exposes academic status only;
-    // account activation is managed by the auth/user module and is not a
-    // supported query parameter on this endpoint.
+    if (grade !== undefined) params.push(`grade=${grade}`);
+    if (departmentId !== undefined) params.push(`departmentId=${departmentId}`);
+    if (majorId !== undefined) params.push(`majorId=${majorId}`);
+    if (classGroupId !== undefined) params.push(`classGroupId=${classGroupId}`);
+    if (activated !== undefined) params.push(`activated=${activated}`);
+    if (enabled !== undefined) params.push(`enabled=${enabled}`);
     const result = await ApiClient.request<StudentListResponse>(
       `/students?${params.join('&')}`,
       http.RequestMethod.GET,
@@ -88,6 +92,15 @@ export class ApiClient {
       pageSize: result.pageSize,
       totalPages: Math.ceil(result.total / result.pageSize)
     };
+  }
+
+  static async getStudent(id: number): Promise<StudentDetail> {
+    return ApiClient.request<StudentDetail>(
+      `/students/${id}`,
+      http.RequestMethod.GET,
+      undefined,
+      true
+    );
   }
 
   private static normalizeUser(user: UserInfo): UserInfo {
