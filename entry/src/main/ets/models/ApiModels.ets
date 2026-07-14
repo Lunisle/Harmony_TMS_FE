@@ -18,8 +18,153 @@ export interface TeacherInfo {
   name: string;
 }
 
+export interface TeacherListItem {
+  id: number;
+  employeeNo: string;
+  name: string;
+  departmentId: number | null;
+  departmentName: string | null;
+  teacherType: string | null;
+  title: string | null;
+  phone: string | null;
+}
+
+export interface TeacherPage {
+  items: TeacherListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface TeacherOptionDepartment {
+  id: number;
+  name: string;
+}
+
+export interface TeacherOptions {
+  departments: TeacherOptionDepartment[];
+  titles: string[];
+  teacherTypes: string[];
+}
+
+export interface TeacherMutationRequest {
+  employeeNo: string;
+  name: string;
+  departmentId?: number;
+  teacherType?: string;
+  title?: string;
+  phone?: string;
+}
+
+export interface DeleteResult {
+  deleted: boolean;
+}
+
+export interface ClassroomListItem {
+  id: number;
+  campus?: string | null;
+  building?: string | null;
+  roomNo: string;
+  type?: string | null;
+  capacity: number;
+  area?: number | null;
+  status: string;
+}
+
+export interface ClassroomPage {
+  items: ClassroomListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface ClassroomOptions {
+  campuses: string[];
+  buildings: string[];
+  types: string[];
+  statuses: string[];
+}
+
+export interface ClassroomMutationRequest {
+  campus?: string;
+  building?: string;
+  roomNo?: string;
+  type?: string;
+  capacity?: number;
+  area?: number;
+  status?: string;
+}
+
+export interface CourseArrangementExam {
+  id: number;
+  semesterId?: number | null;
+  classroomId?: number | null;
+  classroomRoomNo?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  invigilatorName?: string | null;
+}
+
+export interface CourseArrangementScheduleChange {
+  id: number;
+  status?: string;
+  originalSchedule?: string | null;
+  newSchedule?: string | null;
+}
+
+export interface CourseArrangementTextbookOrder {
+  id: number;
+  semesterId?: number | null;
+  status?: string;
+  quantity?: number | null;
+}
+
+export interface CourseArrangementTeachingLog {
+  id: number;
+  date?: string | null;
+  topic?: string | null;
+  content?: string | null;
+}
+
+export interface CourseArrangements {
+  exams: CourseArrangementExam[];
+  scheduleChanges: CourseArrangementScheduleChange[];
+  textbookOrders: CourseArrangementTextbookOrder[];
+  teachingLogs: CourseArrangementTeachingLog[];
+}
+
+export interface CourseDetail {
+  id: number;
+  code: string;
+  name: string;
+  credits: number;
+  courseType?: string | null;
+  departmentId?: number | null;
+  departmentName?: string | null;
+  directorId?: number | null;
+  directorName?: string | null;
+  department?: DepartmentInfo | null;
+  director?: TeacherInfo | null;
+  arrangements: CourseArrangements;
+}
+
+export interface CourseSummary {
+  id: number;
+  code: string;
+  name: string;
+  credits: number;
+  courseType?: string | null;
+  departmentId?: number | null;
+  departmentName?: string | null;
+  directorId?: number | null;
+  directorName?: string | null;
+}
+
 export interface LinkedUserInfo {
   id: number;
+  username?: string;
   enabled: boolean;
 }
 
@@ -39,6 +184,7 @@ export interface StudentListItem {
   studentNo: string;
   name: string;
   classGroupId: number | null;
+  classGroupName?: string | null;
   classGroup?: ClassGroupInfo | null;
   grade: number | null;
   status: string;
@@ -50,6 +196,42 @@ export interface StudentListItem {
   departmentName?: string | null;
   majorId?: number | null;
   majorName?: string | null;
+}
+
+export interface StudentOptionDepartment {
+  id: number;
+  name: string;
+}
+
+export interface StudentOptionMajor {
+  id: number;
+  name: string;
+  departmentId: number;
+}
+
+export interface StudentOptionClassGroup {
+  id: number;
+  name: string;
+  grade: number;
+  majorId: number;
+  departmentId: number;
+}
+
+export interface StudentOptions {
+  departments: StudentOptionDepartment[];
+  majors: StudentOptionMajor[];
+  classGroups: StudentOptionClassGroup[];
+  grades: number[];
+  statuses: string[];
+}
+
+export interface StudentMutationRequest {
+  studentNo: string;
+  name: string;
+  classGroupId: number;
+  grade: number;
+  status: string;
+  phone?: string | null;
 }
 
 export interface StudentPage {
@@ -96,8 +278,7 @@ export interface RegisterRequest {
 }
 
 export interface RegisterData {
-  studentNo: string;
-  message: string;
+  user: UserInfo;
 }
 
 export interface ApiErrorData {

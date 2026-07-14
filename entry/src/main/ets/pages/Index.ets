@@ -5,8 +5,13 @@ import { LoginRequest, RegisterRequest, UserInfo } from '../models/ApiModels';
 import { BottomTabBar } from '../components/BottomTabBar';
 import { HomePage } from './HomePage';
 import { WorkbenchPage } from './WorkbenchPage';
+import { ClassroomRequestPage } from './ClassroomRequestPage';
 import { AdminWorkbenchPage } from './AdminWorkbenchPage';
 import { AdminStudentPage } from './AdminStudentPage';
+import { AdminTeacherPage } from './AdminTeacherPage';
+import { AdminClassroomPage } from './AdminClassroomPage';
+import { CourseDetailPage } from './CourseDetailPage';
+import { AdminCoursePage } from './AdminCoursePage';
 import { ProfilePage } from './ProfilePage';
 import { AnnouncementPage } from './AnnouncementPage';
 
@@ -25,6 +30,8 @@ struct Index {
   @State loggedIn: boolean = false;
   @State selectedTab: number = 0;
   @State adminPage: number = 0;
+  @State selectedCourseId: number = 0;
+  @State workbenchPage: number = 0;
   @State announcementId: number = -1;
   @State currentUser: UserInfo = { id: 0, username: '', role: '', student: null };
 
@@ -44,7 +51,12 @@ struct Index {
   }
 
   private errorMessage(error: Object): string {
-    return error instanceof Error ? error.message : '操作失败，请稍后重试';
+    const message = error instanceof Error ? error.message : '操作失败，请稍后重试';
+    if (message.includes('Invalid username or password')) return '账号或密码错误';
+    if (message.includes('Student number and name do not match')) return '学号或姓名不正确，请确认后重试';
+    if (message.includes('Only enrolled students can register')) return '当前学生状态不允许注册';
+    if (message.includes('already registered') || message.includes('already been used')) return '该学生已注册，请直接登录';
+    return message;
   }
 
   private async restoreSession(): Promise<void> {
@@ -52,7 +64,8 @@ struct Index {
       const session = await SessionStore.load(this.getAbilityContext());
       if (session) {
         ApiClient.setToken(session.token);
-        this.currentUser = await ApiClient.getCurrentUser();
+        // main 分支当前未提供 /auth/me，先使用登录时持久化的用户信息恢复会话。
+        this.currentUser = session.user;
         this.loggedIn = true;
       }
     } catch (_) {
@@ -90,8 +103,8 @@ struct Index {
       this.showMessage('请输入学号和姓名');
       return;
     }
-    if (this.registerPassword.length < 8) {
-      this.showMessage('密码至少需要8位');
+    if (this.registerPassword.length < 6) {
+      this.showMessage('密码至少需要6位');
       return;
     }
     if (this.registerPassword !== this.confirmPassword) {
@@ -103,13 +116,13 @@ struct Index {
       const request: RegisterRequest = {
         studentNo: this.studentNo.trim(), name: this.studentName.trim(), password: this.registerPassword
       };
-      const result = await ApiClient.register(request);
-      this.loginUsername = result.studentNo;
+      await ApiClient.register(request);
+      this.loginUsername = request.studentNo;
       this.loginPassword = '';
       this.activeTab = 0;
       this.registerPassword = '';
       this.confirmPassword = '';
-      this.showMessage(result.message);
+      this.showMessage('注册成功，请使用学号和刚设置的密码登录');
     } catch (error) {
       this.showMessage(this.errorMessage(error as Object));
     } finally {
@@ -163,7 +176,7 @@ struct Index {
         .onChange((value: string) => this.studentNo = value)
       TextInput({ placeholder: '姓名（需与管理员导入档案一致）', text: this.studentName }).height(50)
         .backgroundColor('#F5F8FA').borderRadius(12).onChange((value: string) => this.studentName = value)
-      TextInput({ placeholder: '设置密码（至少8位）', text: this.registerPassword }).type(InputType.Password).height(50)
+      TextInput({ placeholder: '设置密码（至少6位）', text: this.registerPassword }).type(InputType.Password).height(50)
         .backgroundColor('#F5F8FA').borderRadius(12).onChange((value: string) => this.registerPassword = value)
       TextInput({ placeholder: '确认密码', text: this.confirmPassword }).type(InputType.Password).height(50)
         .backgroundColor('#F5F8FA').borderRadius(12).onChange((value: string) => this.confirmPassword = value)
@@ -207,11 +220,23 @@ struct Index {
         if (this.currentUser.role === 'ADMIN' || this.currentUser.role === 'ACADEMIC' || this.currentUser.role === 'DEPARTMENT_ADMIN') {
           if (this.adminPage === 1) {
             AdminStudentPage({ page: $adminPage })
+          } else if (this.adminPage === 2) {
+            AdminTeacherPage({ page: $adminPage })
+          } else if (this.adminPage === 3) {
+            AdminClassroomPage({ page: $adminPage })
+          } else if (this.adminPage === 4) {
+            AdminCoursePage({ page: $adminPage, selectedCourseId: $selectedCourseId })
+          } else if (this.adminPage === 5) {
+            CourseDetailPage({ page: $adminPage, courseId: $selectedCourseId })
           } else {
             AdminWorkbenchPage({ user: this.currentUser, page: $adminPage })
           }
         } else {
-          WorkbenchPage({ user: this.currentUser })
+          if (this.workbenchPage === 1) {
+            ClassroomRequestPage({ user: this.currentUser, page: $workbenchPage })
+          } else {
+            WorkbenchPage({ user: this.currentUser, page: $workbenchPage })
+          }
         }
       } else {
         ProfilePage({ user: this.currentUser, loggedIn: $loggedIn })

@@ -8,8 +8,21 @@ import {
   RegisterRequest,
   UserInfo,
   StudentListItem,
-  StudentDetail
-  ,StudentPage
+  StudentDetail,
+  StudentPage,
+  StudentOptions,
+  StudentMutationRequest,
+  TeacherListItem,
+  TeacherPage,
+  TeacherOptions,
+  TeacherMutationRequest,
+  DeleteResult,
+  ClassroomPage,
+  ClassroomOptions,
+  ClassroomListItem,
+  ClassroomMutationRequest,
+  CourseDetail,
+  CourseSummary
 } from '../models/ApiModels';
 
 interface JsonHeaders {
@@ -22,6 +35,20 @@ interface AuthorizedHeaders extends JsonHeaders {
 
 interface StudentListResponse {
   list: StudentListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+interface TeacherListResponse {
+  list: TeacherListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+interface ClassroomListResponse {
+  list: ClassroomListItem[];
   total: number;
   page: number;
   pageSize: number;
@@ -101,6 +128,111 @@ export class ApiClient {
       undefined,
       true
     );
+  }
+
+  static async getStudentOptions(): Promise<StudentOptions> {
+    return ApiClient.request<StudentOptions>('/students/options', http.RequestMethod.GET, undefined, true);
+  }
+
+  static async createStudent(data: StudentMutationRequest): Promise<StudentDetail> {
+    return ApiClient.request<StudentDetail>('/students', http.RequestMethod.POST, data, true);
+  }
+
+  static async updateStudent(id: number, data: StudentMutationRequest): Promise<StudentDetail> {
+    return ApiClient.request<StudentDetail>(`/students/${id}`, 'PATCH' as http.RequestMethod, data, true);
+  }
+
+  static async deleteStudent(id: number): Promise<DeleteResult> {
+    return ApiClient.request<DeleteResult>(`/students/${id}`, http.RequestMethod.DELETE, undefined, true);
+  }
+
+  static async getTeachers(page: number = 1, pageSize: number = 20, keyword: string = '', departmentId?: number, teacherType: string = '', title: string = ''): Promise<TeacherPage> {
+    const params: string[] = [`page=${page}`, `pageSize=${pageSize}`];
+    if (keyword.length > 0) params.push(`keyword=${encodeURIComponent(keyword)}`);
+    if (departmentId !== undefined) params.push(`departmentId=${departmentId}`);
+    if (teacherType.length > 0) params.push(`teacherType=${encodeURIComponent(teacherType)}`);
+    if (title.length > 0) params.push(`title=${encodeURIComponent(title)}`);
+    const result = await ApiClient.request<TeacherListResponse>(
+      `/teachers?${params.join('&')}`,
+      http.RequestMethod.GET,
+      undefined,
+      true
+    );
+    return {
+      items: result.list,
+      total: result.total,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalPages: Math.max(1, Math.ceil(result.total / result.pageSize))
+    };
+  }
+
+  static async getTeacher(id: number): Promise<TeacherListItem> {
+    return ApiClient.request<TeacherListItem>(`/teachers/${id}`, http.RequestMethod.GET, undefined, true);
+  }
+
+  static async getTeacherOptions(): Promise<TeacherOptions> {
+    return ApiClient.request<TeacherOptions>('/teachers/options', http.RequestMethod.GET, undefined, true);
+  }
+
+  static async createTeacher(data: TeacherMutationRequest): Promise<TeacherListItem> {
+    return ApiClient.request<TeacherListItem>('/teachers', http.RequestMethod.POST, data, true);
+  }
+
+  static async updateTeacher(id: number, data: TeacherMutationRequest): Promise<TeacherListItem> {
+    return ApiClient.request<TeacherListItem>(`/teachers/${id}`, 'PATCH' as http.RequestMethod, data, true);
+  }
+
+  static async deleteTeacher(id: number): Promise<DeleteResult> {
+    return ApiClient.request<DeleteResult>(`/teachers/${id}`, http.RequestMethod.DELETE, undefined, true);
+  }
+
+  static async getClassrooms(page: number = 1, pageSize: number = 10, keyword: string = '', campus: string = '', building: string = '', type: string = '', status: string = ''): Promise<ClassroomPage> {
+    const params: string[] = [`page=${page}`, `pageSize=${pageSize}`];
+    if (keyword.trim().length > 0) params.push(`keyword=${encodeURIComponent(keyword.trim())}`);
+    if (campus.length > 0) params.push(`campus=${encodeURIComponent(campus)}`);
+    if (building.length > 0) params.push(`building=${encodeURIComponent(building)}`);
+    if (type.length > 0) params.push(`type=${encodeURIComponent(type)}`);
+    if (status.length > 0) params.push(`status=${encodeURIComponent(status)}`);
+    const result = await ApiClient.request<ClassroomListResponse>(`/classrooms?${params.join('&')}`, http.RequestMethod.GET, undefined, true);
+    return {
+      items: result.list ?? [], total: result.total ?? 0, page: result.page ?? page,
+      pageSize: result.pageSize ?? pageSize,
+      totalPages: Math.max(1, Math.ceil((result.total ?? 0) / (result.pageSize ?? pageSize)))
+    };
+  }
+
+  static async getClassroom(id: number): Promise<ClassroomListItem> {
+    return ApiClient.request<ClassroomListItem>(`/classrooms/${id}`, http.RequestMethod.GET, undefined, true);
+  }
+
+  static async getClassroomOptions(): Promise<ClassroomOptions> {
+    return ApiClient.request<ClassroomOptions>('/classrooms/options', http.RequestMethod.GET, undefined, true);
+  }
+
+  static async createClassroom(data: ClassroomMutationRequest): Promise<ClassroomListItem> {
+    return ApiClient.request<ClassroomListItem>('/classrooms', http.RequestMethod.POST, data, true);
+  }
+
+  static async updateClassroom(id: number, data: ClassroomMutationRequest): Promise<ClassroomListItem> {
+    return ApiClient.request<ClassroomListItem>(`/classrooms/${id}`, 'PATCH' as http.RequestMethod, data, true);
+  }
+
+  static async deleteClassroom(id: number): Promise<DeleteResult> {
+    return ApiClient.request<DeleteResult>(`/classrooms/${id}`, http.RequestMethod.DELETE, undefined, true);
+  }
+
+  static async getCourseDetail(id: number, semesterId?: number): Promise<CourseDetail> {
+    const query = semesterId === undefined ? '' : `?semesterId=${semesterId}`;
+    return ApiClient.request<CourseDetail>(`/base-data/courses/${id}${query}`, http.RequestMethod.GET, undefined, true);
+  }
+
+  static async getCourses(keyword: string = '', departmentId?: number): Promise<CourseSummary[]> {
+    const params: string[] = [];
+    if (keyword.trim().length > 0) params.push(`keyword=${encodeURIComponent(keyword.trim())}`);
+    if (departmentId !== undefined && departmentId > 0) params.push(`departmentId=${departmentId}`);
+    const query = params.length > 0 ? `?${params.join('&')}` : '';
+    return ApiClient.request<CourseSummary[]>(`/base-data/courses${query}`, http.RequestMethod.GET, undefined, true);
   }
 
   private static normalizeUser(user: UserInfo): UserInfo {

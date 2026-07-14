@@ -3,6 +3,7 @@ import { UserInfo } from '../models/ApiModels';
 @Component
 export struct WorkbenchPage {
   @Prop user: UserInfo;
+  @Link page: number;
 
   private showMessage(message: string): void {
     try {
@@ -60,7 +61,13 @@ export struct WorkbenchPage {
     .backgroundColor(Color.White)
     .borderRadius(16)
     .shadow({ radius: 10, color: '#10000000', offsetY: 3 })
-    .onClick(() => this.showMessage(active ? `${title}功能即将接入` : `${title}开发中`))
+    .onClick(() => {
+      if (title === '教室申请') {
+        this.page = 1;
+      } else {
+        this.showMessage(active ? `${title}功能即将接入` : `${title}开发中`);
+      }
+    })
   }
 
   build() {
