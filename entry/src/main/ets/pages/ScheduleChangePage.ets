@@ -8,6 +8,7 @@ export struct ScheduleChangePage {
   @State selected: ScheduleChangeListItem | null = null;
   @State formVisible: boolean = false;
   @State detailVisible: boolean = false;
+  @State editingId: number = 0;
   @State teacherId: string = '';
   @State courseId: string = '';
   @State classGroupId: string = '';
@@ -45,13 +46,28 @@ export struct ScheduleChangePage {
   private showToast(message: string): void { try { this.getUIContext().getPromptAction().showToast({ message, duration: 2200 }); } catch (_) {} }
 
   private openCreate(): void {
-    this.teacherId = ''; this.courseId = ''; this.classGroupId = ''; this.hours = '1'; this.reason = ''; this.formVisible = true;
+    this.editingId = 0; this.teacherId = ''; this.courseId = ''; this.classGroupId = ''; this.hours = '1'; this.reason = ''; this.formVisible = true;
+  }
+
+  private openEdit(item: ScheduleChangeListItem): void {
+    this.editingId = item.id;
+    this.teacherId = `${item.teacherId}`;
+    this.courseId = `${item.courseId}`;
+    this.classGroupId = `${item.classGroupId}`;
+    this.hours = `${item.hours}`;
+    this.reason = item.reason;
+    this.detailVisible = false;
+    this.formVisible = true;
   }
 
   private async save(): Promise<void> {
     const data: ScheduleChangeMutationRequest = { teacherId: Number(this.teacherId), courseId: Number(this.courseId), classGroupId: Number(this.classGroupId), hours: Number(this.hours), reason: this.reason.trim(), status: 'PENDING' };
     if (!Number.isInteger(data.teacherId) || !Number.isInteger(data.courseId) || !Number.isInteger(data.classGroupId) || data.teacherId < 1 || data.courseId < 1 || data.classGroupId < 1 || data.hours < 0.5 || data.reason.length === 0) { this.showToast('请完整填写教师、课程、班级、课时和原因'); return; }
-    try { await ApiClient.createScheduleChange(data); this.formVisible = false; await this.load(); this.showToast('调课申请已提交'); }
+    try {
+      const editing = this.editingId > 0;
+      if (editing) { await ApiClient.updateScheduleChange(this.editingId, data); } else { await ApiClient.createScheduleChange(data); }
+      this.formVisible = false; this.editingId = 0; await this.load(); this.showToast(editing ? '调课申请已更新' : '调课申请已提交');
+    }
     catch (error) { this.showToast(error instanceof Error ? error.message : '提交调课申请失败'); }
   }
 
@@ -72,14 +88,14 @@ export struct ScheduleChangePage {
       Text(`${item.hours} 课时 · ${item.reason}`).fontSize(13).fontColor('#516B80').width('100%').maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
       Button('查看详情').width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => { this.selected = item; this.detailVisible = true; })
       if (item.status === 'PENDING') { Row({ space: 8 }) { Button('通过').layoutWeight(1).backgroundColor('#DDF2EA').fontColor('#167C68').onClick(() => { void this.updateStatus(item, 'APPROVED'); }); Button('驳回').layoutWeight(1).backgroundColor('#F7E5E5').fontColor('#B04A4A').onClick(() => { void this.updateStatus(item, 'REJECTED'); }) }.width('100%') }
-      if (item.status === 'DRAFT') { Button('删除草稿').width('100%').backgroundColor('#F7E5E5').fontColor('#B04A4A').onClick(() => { void this.remove(item); }) }
+      if (item.status === 'DRAFT') { Row({ space: 8 }) { Button('编辑草稿').layoutWeight(1).backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.openEdit(item)); Button('删除草稿').layoutWeight(1).backgroundColor('#F7E5E5').fontColor('#B04A4A').onClick(() => { void this.remove(item); }) }.width('100%') }
     }.width('100%').padding(15).backgroundColor(Color.White).borderRadius(15).margin({ bottom: 10 })
   }
 
   @Builder
   private formDialog() {
     if (this.formVisible) {
-      Stack() { Column().width('100%').height('100%').backgroundColor('#66000000').onClick(() => this.formVisible = false); Column({ space: 12 }) { Text('新建调课申请').fontSize(20).fontWeight(FontWeight.Bold).fontColor('#17324D').width('100%'); Button(this.teacherLabel()).width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.teacherId = this.cycleId(this.teacherId, this.teachers.map((v: TeacherListItem) => v.id))); Button(this.courseLabel()).width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.courseId = this.cycleId(this.courseId, this.courses.map((v: CourseSummary) => v.id))); Button(this.classGroupLabel()).width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.classGroupId = this.cycleId(this.classGroupId, this.classGroups.map((v: StudentOptionClassGroup) => v.id))); TextInput({ placeholder: '调课课时', text: this.hours }).type(InputType.Number).onChange((v: string) => this.hours = v); TextInput({ placeholder: '申请原因', text: this.reason }).height(80).onChange((v: string) => this.reason = v); Row({ space: 10 }) { Button('取消').layoutWeight(1).onClick(() => this.formVisible = false); Button('提交').layoutWeight(1).backgroundColor('#176B87').fontColor(Color.White).onClick(() => { void this.save(); }) } }.width('86%').padding(20).backgroundColor(Color.White).borderRadius(20) }.width('100%').height('100%')
+      Stack() { Column().width('100%').height('100%').backgroundColor('#66000000').onClick(() => this.formVisible = false); Column({ space: 12 }) { Text(this.editingId > 0 ? '编辑调课申请' : '新建调课申请').fontSize(20).fontWeight(FontWeight.Bold).fontColor('#17324D').width('100%'); Button(this.teacherLabel()).width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.teacherId = this.cycleId(this.teacherId, this.teachers.map((v: TeacherListItem) => v.id))); Button(this.courseLabel()).width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.courseId = this.cycleId(this.courseId, this.courses.map((v: CourseSummary) => v.id))); Button(this.classGroupLabel()).width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.classGroupId = this.cycleId(this.classGroupId, this.classGroups.map((v: StudentOptionClassGroup) => v.id))); TextInput({ placeholder: '调课课时', text: this.hours }).type(InputType.Number).onChange((v: string) => this.hours = v); TextInput({ placeholder: '申请原因', text: this.reason }).height(80).onChange((v: string) => this.reason = v); Row({ space: 10 }) { Button('取消').layoutWeight(1).onClick(() => this.formVisible = false); Button(this.editingId > 0 ? '保存' : '提交').layoutWeight(1).backgroundColor('#176B87').fontColor(Color.White).onClick(() => { void this.save(); }) } }.width('86%').padding(20).backgroundColor(Color.White).borderRadius(20) }.width('100%').height('100%')
     }
   }
 
@@ -96,6 +112,7 @@ export struct ScheduleChangePage {
           Text(`课时：${this.selected.hours}`).fontSize(14).fontColor('#516B80').width('100%')
           Text(`原因：${this.selected.reason}`).fontSize(14).fontColor('#516B80').width('100%').maxLines(4).textOverflow({ overflow: TextOverflow.Ellipsis })
           Text(`状态：${this.statusText(this.selected.status)}`).fontSize(14).fontColor('#176B87').width('100%')
+          if (this.selected.status === 'DRAFT') { Button('编辑草稿').width('100%').backgroundColor('#176B87').fontColor(Color.White).onClick(() => this.openEdit(this.selected as ScheduleChangeListItem)) }
           Button('关闭').width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.detailVisible = false)
         }.width('86%').padding(20).backgroundColor(Color.White).borderRadius(20)
       }.width('100%').height('100%')
