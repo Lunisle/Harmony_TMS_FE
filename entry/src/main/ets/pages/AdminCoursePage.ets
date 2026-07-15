@@ -30,7 +30,7 @@ export struct AdminCoursePage {
     Row({ space: 10 }) {
       Column({ space: 4 }) {
         Text(course.name).fontSize(16).fontWeight(FontWeight.Medium).fontColor('#17324D').width('100%')
-        Text(`${course.code} · ${course.credits} 学分`).fontSize(12).fontColor('#718096').width('100%')
+        Text(course.credits > 0 ? `${course.code} · ${course.credits} 学分` : course.code).fontSize(12).fontColor('#718096').width('100%')
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
       Column({ space: 3 }) {
         Text(course.departmentName ?? '未设置院系').fontSize(12).fontColor('#516B80')
