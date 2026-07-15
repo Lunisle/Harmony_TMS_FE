@@ -36,6 +36,7 @@ export struct AdminStudentPage {
   @State formClassGroupId: number = 0;
   @State formGrade: number = 0;
   @State parsedGrade: number = 0;
+  @State parsedMajorCode: string = '';
   @State parsedClassCode: string = '';
   @State formStatus: string = 'ENROLLED';
   @State formPhone: string = '';
@@ -215,6 +216,7 @@ export struct AdminStudentPage {
     this.formClassGroupId = 0;
     this.formGrade = 0;
     this.parsedGrade = 0;
+    this.parsedMajorCode = '';
     this.parsedClassCode = '';
     this.formStatus = 'ENROLLED';
     this.formPhone = '';
@@ -229,6 +231,7 @@ export struct AdminStudentPage {
     this.formClassGroupId = this.selectedStudent.classGroupId ?? 0;
     this.formGrade = this.selectedStudent.grade ?? 0;
     this.parsedGrade = 0;
+    this.parsedMajorCode = '';
     this.parsedClassCode = '';
     this.formStatus = this.selectedStudent.status;
     this.formPhone = this.selectedStudent.phone ?? '';
@@ -283,7 +286,8 @@ export struct AdminStudentPage {
   private classSelectOptions(): SelectOption[] {
     const result: SelectOption[] = [{ value: '请选择班级' }];
     this.formClassGroups().forEach((group: StudentOptionClassGroup) => {
-      const option: SelectOption = { value: `${group.code ?? ''} · ${group.name}` };
+      const majorName = group.majorName ?? this.options.majors.find((major: StudentOptionMajor) => major.id === group.majorId)?.name ?? '未设置专业';
+      const option: SelectOption = { value: `${majorName} · ${group.code ?? ''} · ${group.name}` };
       result.push(option);
     });
     return result;
@@ -296,13 +300,18 @@ export struct AdminStudentPage {
   private parseStudentNo(value: string): void {
     this.formStudentNo = value;
     this.parsedGrade = 0;
+    this.parsedMajorCode = '';
     this.parsedClassCode = '';
     this.formClassGroupId = 0;
     if (!this.validStudentNo(value)) return;
     this.parsedGrade = Number(value.substring(0, 4));
+    this.parsedMajorCode = value.substring(6, 8);
     this.parsedClassCode = value.substring(8, 10);
     this.formGrade = this.parsedGrade;
-    const matched = this.options.classGroups.find((option: StudentOptionClassGroup) => option.grade === this.parsedGrade && option.code === this.parsedClassCode);
+    const matched = this.options.classGroups.find((option: StudentOptionClassGroup) => {
+      const major = this.options.majors.find((item: StudentOptionMajor) => item.id === option.majorId);
+      return option.grade === this.parsedGrade && option.code === this.parsedClassCode && major?.code === this.parsedMajorCode;
+    });
     if (matched) this.formClassGroupId = matched.id;
   }
 
@@ -332,7 +341,8 @@ export struct AdminStudentPage {
     }
     if (this.parsedClassCode.length > 0) {
       const selectedGroup = this.options.classGroups.find((option: StudentOptionClassGroup) => option.id === this.formClassGroupId);
-      if (!selectedGroup || selectedGroup.code !== this.parsedClassCode || selectedGroup.grade !== this.parsedGrade) {
+      const selectedMajor = selectedGroup ? this.options.majors.find((option: StudentOptionMajor) => option.id === selectedGroup.majorId) : undefined;
+      if (!selectedGroup || selectedGroup.code !== this.parsedClassCode || selectedGroup.grade !== this.parsedGrade || selectedMajor?.code !== this.parsedMajorCode) {
         this.showToast('班级与学号解析结果不一致');
         return;
       }

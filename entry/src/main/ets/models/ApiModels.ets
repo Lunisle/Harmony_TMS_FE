@@ -355,6 +355,7 @@ export interface StudentOptionDepartment {
 
 export interface StudentOptionMajor {
   id: number;
+  code?: string;
   name: string;
   departmentId: number;
 }
@@ -365,6 +366,8 @@ export interface StudentOptionClassGroup {
   name: string;
   grade: number;
   majorId: number;
+  majorName?: string;
+  businessCode?: string;
   departmentId: number;
 }
 
