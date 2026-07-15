@@ -53,7 +53,7 @@ export struct WorkbenchPage {
           .width('100%')
           .textAlign(TextAlign.Center)
       }
-      .width(72)
+      .width(96)
       .alignItems(HorizontalAlign.Center)
     }
     .width('100%')
@@ -80,7 +80,7 @@ export struct WorkbenchPage {
           .fontWeight(FontWeight.Bold)
           .fontColor('#17324D')
           .width('100%')
-        Text('全部教学服务入口将按账号角色逐步开放')
+        Text('服务入口按可用范围标注，教师和学生可共同使用的功能统一展示')
           .fontSize(13)
           .fontColor('#718096')
           .width('100%')
@@ -92,7 +92,7 @@ export struct WorkbenchPage {
           .fontColor('#29445A')
           .width('100%')
         this.serviceRow('考', '考试查询', '查看考试安排与提醒', '学生', true)
-        this.serviceRow('室', '教室申请', '申请可用教学场地', '学生', true)
+        this.serviceRow('室', '教室申请', '教师、学生均可申请可用教学场地', '教师、学生', true)
         this.serviceRow('修', '重修申请', '提交课程重修申请', '学生', true)
         this.serviceRow('升', '专升本报名', '查看报名资格与进度', '学生', true)
 
