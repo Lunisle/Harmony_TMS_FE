@@ -5,6 +5,10 @@ import { ClassroomListItem, CourseSummary, ExamListItem, ExamMutationRequest, Se
 export struct ExamPage {
   @Link page: number;
   @State exams: ExamListItem[] = [];
+  @State total: number = 0;
+  @State currentPage: number = 1;
+  @State totalPages: number = 1;
+  @State pageSize: number = 10;
   @State keyword: string = '';
   @State formVisible: boolean = false;
   @State detailVisible: boolean = false;
@@ -54,7 +58,11 @@ export struct ExamPage {
   private async load(): Promise<void> {
     this.loading = true;
     try {
-      this.exams = (await ApiClient.getExams(1, 100, this.keyword.trim())).items;
+      const result = await ApiClient.getExams(this.currentPage, this.pageSize, this.keyword.trim());
+      this.exams = result.items;
+      this.total = result.total;
+      this.totalPages = Math.max(1, result.totalPages);
+      if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
     } catch (error) {
       this.showToast(error instanceof Error ? error.message : '加载考试安排失败');
     } finally {
@@ -205,7 +213,8 @@ export struct ExamPage {
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         Text(`学期 ${item.semesterId}`).fontSize(12).fontColor('#176B87')
       }
-      Text(`${this.formatTime(item.startTime)} 至 ${this.formatTime(item.endTime)}`).fontSize(13).fontColor('#516B80').width('100%')
+      Text(`开始：${this.formatTime(item.startTime)}`).fontSize(13).fontColor('#516B80').width('100%')
+      Text(`结束：${this.formatTime(item.endTime)}`).fontSize(13).fontColor('#516B80').width('100%')
       Text(`监考：${item.invigilatorName ?? '未安排'}`).fontSize(12).fontColor('#8999A4').width('100%')
       Row({ space: 8 }) {
         Button('详情').layoutWeight(1).backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => { void this.openDetail(item); })
@@ -261,19 +270,19 @@ export struct ExamPage {
               .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.classroomId = index > 0 ? `${this.classrooms[index - 1].id}` : '')
             this.requiredLabel('开始时间')
             Row({ space: 5 }) {
-              TextInput({ placeholder: '年', text: this.startYear }).type(InputType.Number).maxLength(4).layoutWeight(2).height(42).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startYear = value)
-              TextInput({ placeholder: '月', text: this.startMonth }).type(InputType.Number).maxLength(2).layoutWeight(1).height(42).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startMonth = value)
-              TextInput({ placeholder: '日', text: this.startDay }).type(InputType.Number).maxLength(2).layoutWeight(1).height(42).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startDay = value)
-              TextInput({ placeholder: '时', text: this.startHour }).type(InputType.Number).maxLength(2).layoutWeight(1).height(42).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startHour = value)
-              TextInput({ placeholder: '分', text: this.startMinute }).type(InputType.Number).maxLength(2).layoutWeight(1).height(42).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startMinute = value)
+              TextInput({ placeholder: '年', text: this.startYear }).type(InputType.Number).maxLength(4).layoutWeight(2).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startYear = value)
+              TextInput({ placeholder: '月', text: this.startMonth }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startMonth = value)
+              TextInput({ placeholder: '日', text: this.startDay }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startDay = value)
+              TextInput({ placeholder: '时', text: this.startHour }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startHour = value)
+              TextInput({ placeholder: '分', text: this.startMinute }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startMinute = value)
             }.width('100%')
             this.requiredLabel('结束时间')
             Row({ space: 5 }) {
-              TextInput({ placeholder: '年', text: this.endYear }).type(InputType.Number).maxLength(4).layoutWeight(2).height(42).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endYear = value)
-              TextInput({ placeholder: '月', text: this.endMonth }).type(InputType.Number).maxLength(2).layoutWeight(1).height(42).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endMonth = value)
-              TextInput({ placeholder: '日', text: this.endDay }).type(InputType.Number).maxLength(2).layoutWeight(1).height(42).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endDay = value)
-              TextInput({ placeholder: '时', text: this.endHour }).type(InputType.Number).maxLength(2).layoutWeight(1).height(42).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endHour = value)
-              TextInput({ placeholder: '分', text: this.endMinute }).type(InputType.Number).maxLength(2).layoutWeight(1).height(42).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endMinute = value)
+              TextInput({ placeholder: '年', text: this.endYear }).type(InputType.Number).maxLength(4).layoutWeight(2).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endYear = value)
+              TextInput({ placeholder: '月', text: this.endMonth }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endMonth = value)
+              TextInput({ placeholder: '日', text: this.endDay }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endDay = value)
+              TextInput({ placeholder: '时', text: this.endHour }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endHour = value)
+              TextInput({ placeholder: '分', text: this.endMinute }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endMinute = value)
             }.width('100%')
             this.optionalLabel('监考教师（可选）')
             Select(this.selectOptions('选择监考教师（可选）', this.teacherLabels())).selected(this.idIndex(this.invigilatorId, this.teachers.map((item: TeacherListItem) => item.id))).width('100%').height(46)
@@ -291,12 +300,12 @@ export struct ExamPage {
         Row() {
           Text('‹').fontSize(32).fontColor('#176B87').width(42).onClick(() => this.page = 0)
           Text('考试安排').fontSize(22).fontWeight(FontWeight.Bold).fontColor('#17324D').layoutWeight(1)
-          Text(`${this.exams.length} 条`).fontSize(13).fontColor('#718096')
+          Text(`${this.total} 条`).fontSize(13).fontColor('#718096')
         }.width('100%').padding({ left: 18, right: 20, top: 18, bottom: 10 })
         Row({ space: 8 }) {
           TextInput({ placeholder: '搜索课程或班级', text: this.keyword }).layoutWeight(1).height(42).backgroundColor(Color.White).borderRadius(10)
-            .onChange((value: string) => this.keyword = value).onSubmit(() => { void this.load(); })
-          Button('搜索').height(40).backgroundColor('#176B87').fontColor(Color.White).onClick(() => { void this.load(); })
+            .onChange((value: string) => this.keyword = value).onSubmit(() => { this.currentPage = 1; void this.load(); })
+          Button('搜索').height(40).backgroundColor('#176B87').fontColor(Color.White).onClick(() => { this.currentPage = 1; void this.load(); })
           Button('新建').height(40).backgroundColor('#176B87').fontColor(Color.White).onClick(() => this.openCreate())
         }.width('100%').padding({ left: 20, right: 20, bottom: 10 })
         if (this.loading) {
@@ -305,6 +314,13 @@ export struct ExamPage {
           List() {
             ForEach(this.exams, (item: ExamListItem) => { ListItem() { this.examRow(item) } }, (item: ExamListItem) => `${item.id}`)
           }.width('100%').layoutWeight(1).padding({ left: 20, right: 20 })
+          Row({ space: 12 }) {
+            Button('上一页').enabled(this.currentPage > 1 && !this.loading).backgroundColor('#E4F2F5').fontColor('#176B87')
+              .onClick(() => { this.currentPage--; void this.load(); })
+            Text(`${this.currentPage} / ${this.totalPages}`).fontSize(13).fontColor('#516B80')
+            Button('下一页').enabled(this.currentPage < this.totalPages && !this.loading).backgroundColor('#E4F2F5').fontColor('#176B87')
+              .onClick(() => { this.currentPage++; void this.load(); })
+          }.width('100%').justifyContent(FlexAlign.Center).padding({ top: 8, bottom: 16 })
         }
       }.width('100%').height('100%').backgroundColor('#EDF5F7')
       this.formDialog()
