@@ -242,7 +242,7 @@ struct Index {
           if (this.workbenchPage === 1) {
             ClassroomRequestPage({ user: this.currentUser, page: $workbenchPage })
           } else if (this.workbenchPage === 2) {
-            ScheduleChangePage({ page: $workbenchPage })
+            ScheduleChangePage({ user: this.currentUser, page: $workbenchPage })
           } else {
             WorkbenchPage({ user: this.currentUser, page: $workbenchPage })
           }

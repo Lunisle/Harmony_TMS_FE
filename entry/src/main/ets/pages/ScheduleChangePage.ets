@@ -1,8 +1,9 @@
 import { ApiClient } from '../services/ApiClient';
-import { ScheduleChangeListItem, ScheduleChangeMutationRequest, CourseSummary, TeacherListItem, StudentOptionClassGroup } from '../models/ApiModels';
+import { ScheduleChangeListItem, ScheduleChangeMutationRequest, CourseSummary, TeacherListItem, StudentOptionClassGroup, UserInfo } from '../models/ApiModels';
 
 @Component
 export struct ScheduleChangePage {
+  @Prop user: UserInfo;
   @Link page: number;
   @State items: ScheduleChangeListItem[] = [];
   @State selected: ScheduleChangeListItem | null = null;
@@ -15,6 +16,9 @@ export struct ScheduleChangePage {
   @State hours: string = '1';
   @State reason: string = '';
   @State status: string = 'PENDING';
+  @State decisionVisible: boolean = false;
+  @State decisionStatus: string = '';
+  @State decisionComment: string = '';
   @State loading: boolean = false;
   @State courses: CourseSummary[] = [];
   @State teachers: TeacherListItem[] = [];
@@ -49,6 +53,8 @@ export struct ScheduleChangePage {
   }
 
   private showToast(message: string): void { try { this.getUIContext().getPromptAction().showToast({ message, duration: 2200 }); } catch (_) {} }
+  private canSubmit(): boolean { return this.user.role === 'TEACHER' || this.user.role === 'ADMIN'; }
+  private canApprove(): boolean { return this.user.role === 'DEPARTMENT_ADMIN' || this.user.role === 'ACADEMIC' || this.user.role === 'ADMIN'; }
 
   private openCreate(): void {
     this.editingId = 0; this.teacherId = ''; this.courseId = ''; this.classGroupId = ''; this.hours = '1'; this.reason = ''; this.formVisible = true;
@@ -70,15 +76,37 @@ export struct ScheduleChangePage {
     if (!Number.isInteger(data.teacherId) || !Number.isInteger(data.courseId) || !Number.isInteger(data.classGroupId) || data.teacherId < 1 || data.courseId < 1 || data.classGroupId < 1 || data.hours < 0.5 || data.reason.length === 0) { this.showToast('请完整填写教师、课程、班级、课时和原因'); return; }
     try {
       const editing = this.editingId > 0;
-      if (editing) { await ApiClient.updateScheduleChange(this.editingId, data); } else { await ApiClient.createScheduleChange(data); }
+      if (editing) {
+        const updateData: ScheduleChangeMutationRequest = { teacherId: data.teacherId, courseId: data.courseId, classGroupId: data.classGroupId, hours: data.hours, reason: data.reason };
+        await ApiClient.updateScheduleChange(this.editingId, updateData);
+      } else { await ApiClient.createScheduleChange(data); }
       this.formVisible = false; this.editingId = 0; await this.load(); this.showToast(editing ? '调课申请已更新' : '调课申请已提交');
     }
     catch (error) { this.showToast(error instanceof Error ? error.message : '提交调课申请失败'); }
   }
 
-  private async updateStatus(item: ScheduleChangeListItem, status: string): Promise<void> {
-    try { await ApiClient.updateScheduleChangeStatus(item.id, status); await this.load(); this.showToast(status === 'APPROVED' ? '调课申请已通过' : '调课申请已驳回'); }
+  private async updateStatus(item: ScheduleChangeListItem, status: string, comment?: string): Promise<void> {
+    try { await ApiClient.updateScheduleChangeStatus(item.id, status, comment); await this.load(); this.showToast(status === 'APPROVED' ? '调课申请已通过' : '调课申请已驳回'); }
     catch (error) { this.showToast(error instanceof Error ? error.message : '审批操作失败'); }
+  }
+
+  private openDecision(item: ScheduleChangeListItem, status: string): void {
+    if (status === 'REJECTED') {
+      this.selected = item;
+      this.decisionStatus = status;
+      this.decisionComment = '';
+      this.decisionVisible = true;
+    } else {
+      void this.updateStatus(item, status);
+    }
+  }
+
+  private async submitDecision(): Promise<void> {
+    if (this.selected === null) return;
+    if (this.decisionComment.trim().length === 0) { this.showToast('驳回时必须填写审批意见'); return; }
+    this.decisionVisible = false;
+    await this.updateStatus(this.selected, this.decisionStatus, this.decisionComment.trim());
+    this.selected = null;
   }
 
   private async remove(item: ScheduleChangeListItem): Promise<void> {
@@ -92,8 +120,8 @@ export struct ScheduleChangePage {
       Row() { Column({ space: 3 }) { Text(item.courseName ?? `课程 ${item.courseId}`).fontSize(16).fontWeight(FontWeight.Medium).fontColor('#17324D'); Text(`${item.teacherName ?? `教师 ${item.teacherId}`} · ${item.classGroupName ?? `班级 ${item.classGroupId}`}`).fontSize(12).fontColor('#718096') }.layoutWeight(1).alignItems(HorizontalAlign.Start); Text(this.statusText(item.status)).fontSize(12).fontColor('#176B87').backgroundColor('#E4F2F5').padding({ left: 8, right: 8, top: 4, bottom: 4 }).borderRadius(9) }
       Text(`${item.hours} 课时 · ${item.reason}`).fontSize(13).fontColor('#516B80').width('100%').maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
       Button('查看详情').width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => { void this.openDetail(item); })
-      if (item.status === 'PENDING') { Row({ space: 8 }) { Button('通过').layoutWeight(1).backgroundColor('#DDF2EA').fontColor('#167C68').onClick(() => { void this.updateStatus(item, 'APPROVED'); }); Button('驳回').layoutWeight(1).backgroundColor('#F7E5E5').fontColor('#B04A4A').onClick(() => { void this.updateStatus(item, 'REJECTED'); }) }.width('100%') }
-      if (item.status === 'DRAFT') { Row({ space: 8 }) { Button('编辑草稿').layoutWeight(1).backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.openEdit(item)); Button('删除草稿').layoutWeight(1).backgroundColor('#F7E5E5').fontColor('#B04A4A').onClick(() => { void this.remove(item); }) }.width('100%') }
+      if (item.status === 'PENDING' && this.canApprove()) { Row({ space: 8 }) { Button('通过').layoutWeight(1).backgroundColor('#DDF2EA').fontColor('#167C68').onClick(() => this.openDecision(item, 'APPROVED')); Button('驳回').layoutWeight(1).backgroundColor('#F7E5E5').fontColor('#B04A4A').onClick(() => this.openDecision(item, 'REJECTED')) }.width('100%') }
+      if (item.status === 'DRAFT' && this.canSubmit()) { Row({ space: 8 }) { Button('编辑草稿').layoutWeight(1).backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.openEdit(item)); Button('删除草稿').layoutWeight(1).backgroundColor('#F7E5E5').fontColor('#B04A4A').onClick(() => { void this.remove(item); }) }.width('100%') }
     }.width('100%').padding(15).backgroundColor(Color.White).borderRadius(15).margin({ bottom: 10 })
   }
 
@@ -117,14 +145,29 @@ export struct ScheduleChangePage {
           Text(`课时：${this.selected.hours}`).fontSize(14).fontColor('#516B80').width('100%')
           Text(`原因：${this.selected.reason}`).fontSize(14).fontColor('#516B80').width('100%').maxLines(4).textOverflow({ overflow: TextOverflow.Ellipsis })
           Text(`状态：${this.statusText(this.selected.status)}`).fontSize(14).fontColor('#176B87').width('100%')
-          if (this.selected.status === 'DRAFT') { Button('编辑草稿').width('100%').backgroundColor('#176B87').fontColor(Color.White).onClick(() => this.openEdit(this.selected as ScheduleChangeListItem)) }
+          if (this.selected.status === 'DRAFT' && this.canSubmit()) { Button('编辑草稿').width('100%').backgroundColor('#176B87').fontColor(Color.White).onClick(() => this.openEdit(this.selected as ScheduleChangeListItem)) }
           Button('关闭').width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.detailVisible = false)
         }.width('86%').padding(20).backgroundColor(Color.White).borderRadius(20)
       }.width('100%').height('100%')
     }
   }
 
+  @Builder
+  private decisionDialog() {
+    if (this.decisionVisible && this.selected !== null) {
+      Stack() {
+        Column().width('100%').height('100%').backgroundColor('#66000000').onClick(() => this.decisionVisible = false)
+        Column({ space: 12 }) {
+          Text('驳回调课申请').fontSize(20).fontWeight(FontWeight.Bold).fontColor('#17324D').width('100%')
+          Text(`${this.selected.courseName ?? this.selected.courseId} · ${this.selected.teacherName ?? this.selected.teacherId}`).fontSize(14).fontColor('#516B80').width('100%')
+          TextInput({ placeholder: '驳回意见（必填）', text: this.decisionComment }).height(90).backgroundColor('#F1F6F8').borderRadius(10).onChange((value: string) => this.decisionComment = value)
+          Row({ space: 10 }) { Button('取消').layoutWeight(1).onClick(() => this.decisionVisible = false); Button('确认驳回').layoutWeight(1).backgroundColor('#B04A4A').fontColor(Color.White).onClick(() => { void this.submitDecision(); }) }
+        }.width('86%').padding(20).backgroundColor(Color.White).borderRadius(20)
+      }.width('100%').height('100%')
+    }
+  }
+
   build() {
-    Stack() { Column() { Row() { Text('‹').fontSize(32).fontColor('#176B87').width(42).onClick(() => this.page = 0); Text('调课申请').fontSize(22).fontWeight(FontWeight.Bold).fontColor('#17324D').layoutWeight(1); Text(`${this.items.length} 条`).fontSize(13).fontColor('#718096') }.width('100%').padding({ left: 18, right: 20, top: 18, bottom: 10 }); Row() { Button('新建申请').backgroundColor('#176B87').fontColor(Color.White).onClick(() => this.openCreate()); Button('刷新').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => { void this.load(); }) }.width('100%').justifyContent(FlexAlign.End).padding({ left: 20, right: 20, bottom: 10 }); if (this.loading) { LoadingProgress().color('#176B87').layoutWeight(1) } else { List() { ForEach(this.items, (item: ScheduleChangeListItem) => { ListItem() { this.row(item) } }, (item: ScheduleChangeListItem) => `${item.id}`) }.width('100%').layoutWeight(1).padding({ left: 20, right: 20 }) } }.width('100%').height('100%').backgroundColor('#EDF5F7'); this.formDialog(); this.detailDialog() }.width('100%').height('100%')
+    Stack() { Column() { Row() { Text('‹').fontSize(32).fontColor('#176B87').width(42).onClick(() => this.page = 0); Text('调课申请').fontSize(22).fontWeight(FontWeight.Bold).fontColor('#17324D').layoutWeight(1); Text(`${this.items.length} 条`).fontSize(13).fontColor('#718096') }.width('100%').padding({ left: 18, right: 20, top: 18, bottom: 10 }); Row() { if (this.canSubmit()) { Button('新建申请').backgroundColor('#176B87').fontColor(Color.White).onClick(() => this.openCreate()); } Button('刷新').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => { void this.load(); }) }.width('100%').justifyContent(FlexAlign.End).padding({ left: 20, right: 20, bottom: 10 }); if (this.loading) { LoadingProgress().color('#176B87').layoutWeight(1) } else { List() { ForEach(this.items, (item: ScheduleChangeListItem) => { ListItem() { this.row(item) } }, (item: ScheduleChangeListItem) => `${item.id}`) }.width('100%').layoutWeight(1).padding({ left: 20, right: 20 }) } }.width('100%').height('100%').backgroundColor('#EDF5F7'); this.formDialog(); this.detailDialog(); this.decisionDialog() }.width('100%').height('100%')
   }
 }
