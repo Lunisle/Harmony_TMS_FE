@@ -9,13 +9,20 @@ export struct AdminCoursePage {
   @State keyword: string = '';
   @State loading: boolean = false;
   @State errorText: string = '';
+  @State currentPage: number = 1;
+  @State pageSize: number = 10;
+  @State totalPages: number = 1;
 
   aboutToAppear(): void { void this.loadCourses(); }
 
   private async loadCourses(): Promise<void> {
     this.loading = true;
     this.errorText = '';
-    try { this.courses = await ApiClient.getCourses(this.keyword); }
+    try {
+      this.courses = await ApiClient.getCourses(this.keyword);
+      this.totalPages = Math.max(1, Math.ceil(this.courses.length / this.pageSize));
+      if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
+    }
     catch (error) { this.errorText = error instanceof Error ? error.message : '加载课程列表失败'; }
     finally { this.loading = false; }
   }
@@ -23,6 +30,11 @@ export struct AdminCoursePage {
   private openDetail(course: CourseSummary): void {
     this.selectedCourseId = course.id;
     this.page = 5;
+  }
+
+  private visibleCourses(): CourseSummary[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.courses.slice(start, start + this.pageSize);
   }
 
   @Builder
@@ -54,9 +66,9 @@ export struct AdminCoursePage {
         TextInput({ placeholder: '搜索课程编号或名称', text: this.keyword }).layoutWeight(1).height(42)
           .backgroundColor(Color.White).borderRadius(10)
           .onChange((value: string) => this.keyword = value)
-          .onSubmit(() => { void this.loadCourses(); })
+          .onSubmit(() => { this.currentPage = 1; void this.loadCourses(); })
         Button('搜索').height(40).backgroundColor('#176B87').fontColor(Color.White)
-          .onClick(() => { void this.loadCourses(); })
+          .onClick(() => { this.currentPage = 1; void this.loadCourses(); })
       }.width('100%').padding({ left: 20, right: 20, bottom: 10 })
       if (this.loading) {
         Column({ space: 10 }) { LoadingProgress().color('#176B87'); Text('正在加载课程数据').fontSize(13).fontColor('#718096') }
@@ -69,8 +81,15 @@ export struct AdminCoursePage {
           .layoutWeight(1).justifyContent(FlexAlign.Center)
       } else {
         List() {
-          ForEach(this.courses, (course: CourseSummary) => { ListItem() { this.courseRow(course) } }, (course: CourseSummary) => `${course.id}`)
+          ForEach(this.visibleCourses(), (course: CourseSummary) => { ListItem() { this.courseRow(course) } }, (course: CourseSummary) => `${course.id}`)
         }.width('100%').layoutWeight(1).padding({ left: 20, right: 20, bottom: 16 })
+        Row({ space: 12 }) {
+          Button('上一页').enabled(this.currentPage > 1 && !this.loading).backgroundColor('#E4F2F5').fontColor('#176B87')
+            .onClick(() => this.currentPage--)
+          Text(`${this.currentPage} / ${this.totalPages}`).fontSize(13).fontColor('#516B80')
+          Button('下一页').enabled(this.currentPage < this.totalPages && !this.loading).backgroundColor('#E4F2F5').fontColor('#176B87')
+            .onClick(() => this.currentPage++)
+        }.width('100%').justifyContent(FlexAlign.Center).padding({ top: 8, bottom: 16 })
       }
     }.width('100%').height('100%').backgroundColor('#EDF5F7')
   }

@@ -18,6 +18,7 @@ export struct AdminClassroomPage {
   @State classrooms: ClassroomPreview[] = [];
   @State total: number = 0;
   @State currentPage: number = 1;
+  @State totalPages: number = 1;
   @State pageSize: number = 10;
   @State loading: boolean = false;
   @State keyword: string = '';
@@ -69,6 +70,8 @@ export struct AdminClassroomPage {
         type: item.type ?? '', capacity: item.capacity, area: item.area ?? 0, status: item.status
       }));
       this.total = result.total;
+      this.totalPages = Math.max(1, Math.ceil(this.total / this.pageSize));
+      if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
     } catch (error) {
       this.showToast(error instanceof Error ? error.message : '加载教室失败');
     } finally {
@@ -423,12 +426,12 @@ export struct AdminClassroomPage {
           }.width('100%').layoutWeight(1).padding({ left: 20, right: 20, bottom: 16 })
         }
         Row({ space: 12 }) {
-          Button('上一页').enabled(this.currentPage > 1).layoutWeight(1).backgroundColor('#E4F2F5').fontColor('#176B87')
+          Button('上一页').enabled(this.currentPage > 1 && !this.loading).backgroundColor('#E4F2F5').fontColor('#176B87')
             .onClick(() => { this.currentPage -= 1; this.loadClassrooms(); })
-          Text(`第 ${this.currentPage} 页`).fontSize(13).fontColor('#516B80')
-          Button('下一页').enabled(this.currentPage * this.pageSize < this.total).layoutWeight(1).backgroundColor('#E4F2F5').fontColor('#176B87')
+          Text(`${this.currentPage} / ${this.totalPages}`).fontSize(13).fontColor('#516B80')
+          Button('下一页').enabled(this.currentPage < this.totalPages && !this.loading).backgroundColor('#E4F2F5').fontColor('#176B87')
             .onClick(() => { this.currentPage += 1; this.loadClassrooms(); })
-        }.width('100%').padding({ left: 20, right: 20, bottom: 14 })
+        }.width('100%').justifyContent(FlexAlign.Center).padding({ top: 8, bottom: 16 })
       }.width('100%').height('100%').backgroundColor('#EDF5F7')
       this.detailDialog()
       this.filterDialog()
