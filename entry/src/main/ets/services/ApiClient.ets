@@ -346,8 +346,8 @@ export class ApiClient {
     return ApiClient.request<ClassroomRequestListItem>(`/classroom-requests/${id}`, 'PATCH' as http.RequestMethod, data, true);
   }
 
-  static async getScheduleChanges(page: number = 1, pageSize: number = 10, status: string = ''): Promise<ScheduleChangePage> {
-    const query = `page=${page}&pageSize=${pageSize}${status.length > 0 ? `&status=${encodeURIComponent(status)}` : ''}`;
+  static async getScheduleChanges(page: number = 1, pageSize: number = 10, status: string = '', teacherId?: number): Promise<ScheduleChangePage> {
+    const query = `page=${page}&pageSize=${pageSize}${status.length > 0 ? `&status=${encodeURIComponent(status)}` : ''}${teacherId !== undefined && teacherId > 0 ? `&teacherId=${teacherId}` : ''}`;
     const result = await ApiClient.request<ScheduleChangeListResponse>(`/schedule-changes?${query}`, http.RequestMethod.GET, undefined, true);
     return { items: result.list ?? [], total: result.total ?? 0, page: result.page ?? page, pageSize: result.pageSize ?? pageSize, totalPages: Math.max(1, Math.ceil((result.total ?? 0) / (result.pageSize ?? pageSize))) };
   }

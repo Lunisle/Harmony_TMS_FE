@@ -20,6 +20,10 @@ export struct ScheduleChangePage {
   @State decisionStatus: string = '';
   @State decisionComment: string = '';
   @State loading: boolean = false;
+  @State total: number = 0;
+  @State currentPage: number = 1;
+  @State totalPages: number = 1;
+  @State pageSize: number = 10;
   @State courses: CourseSummary[] = [];
   @State teachers: TeacherListItem[] = [];
   @State classGroups: StudentOptionClassGroup[] = [];
@@ -48,9 +52,24 @@ export struct ScheduleChangePage {
 
   private async load(): Promise<void> {
     this.loading = true;
-    try { this.items = (await ApiClient.getScheduleChanges(1, 100)).items; }
+    try {
+      const teacherId = this.user.role === 'TEACHER' && this.user.teacherId !== undefined && this.user.teacherId !== null ? this.user.teacherId : undefined;
+      const result = await ApiClient.getScheduleChanges(this.currentPage, this.pageSize, '', teacherId);
+      this.items = result.items;
+      this.total = result.total;
+      this.totalPages = result.totalPages;
+      if (this.currentPage > this.totalPages) {
+        this.currentPage = this.totalPages;
+        await this.load();
+      }
+    }
     catch (error) { this.showToast(error instanceof Error ? error.message : '加载调课申请失败'); }
     finally { this.loading = false; }
+  }
+
+  private async refresh(): Promise<void> {
+    await this.initialize();
+    this.showToast('数据已刷新');
   }
 
   private async openDetail(item: ScheduleChangeListItem): Promise<void> {
@@ -240,6 +259,38 @@ export struct ScheduleChangePage {
   }
 
   build() {
-    Stack() { Column() { Row() { Text('‹').fontSize(32).fontColor('#176B87').width(42).onClick(() => this.page = 0); Text('调课申请').fontSize(22).fontWeight(FontWeight.Bold).fontColor('#17324D').layoutWeight(1); Text(`${this.items.length} 条`).fontSize(13).fontColor('#718096') }.width('100%').padding({ left: 18, right: 20, top: 18, bottom: 10 }); Row() { if (this.canSubmit()) { Button('新建申请').backgroundColor('#176B87').fontColor(Color.White).onClick(() => this.openCreate()); } Button('刷新').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => { void this.load(); }) }.width('100%').justifyContent(FlexAlign.End).padding({ left: 20, right: 20, bottom: 10 }); if (this.loading) { LoadingProgress().color('#176B87').layoutWeight(1) } else { List() { ForEach(this.items, (item: ScheduleChangeListItem) => { ListItem() { this.row(item) } }, (item: ScheduleChangeListItem) => `${item.id}`) }.width('100%').layoutWeight(1).padding({ left: 20, right: 20 }) } }.width('100%').height('100%').backgroundColor('#EDF5F7'); this.formDialog(); this.detailDialog(); this.decisionDialog() }.width('100%').height('100%')
+    Stack() {
+      Column() {
+        Row() {
+          Text('‹').fontSize(32).fontColor('#176B87').width(42).onClick(() => this.page = 0)
+          Text('调课申请').fontSize(22).fontWeight(FontWeight.Bold).fontColor('#17324D').layoutWeight(1)
+          Text(`${this.total} 条`).fontSize(13).fontColor('#718096')
+        }.width('100%').padding({ left: 18, right: 20, top: 18, bottom: 10 })
+        Row({ space: 8 }) {
+          if (this.canSubmit()) {
+            Button('新建申请').backgroundColor('#176B87').fontColor(Color.White).onClick(() => this.openCreate())
+          }
+          Button('刷新').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => { void this.refresh(); })
+        }.width('100%').justifyContent(FlexAlign.End).padding({ left: 20, right: 20, bottom: 10 })
+        if (this.loading) {
+          LoadingProgress().color('#176B87').layoutWeight(1)
+        } else {
+          List() {
+            ForEach(this.items, (item: ScheduleChangeListItem) => { ListItem() { this.row(item) } },
+              (item: ScheduleChangeListItem) => `${item.id}`)
+          }.width('100%').layoutWeight(1).padding({ left: 20, right: 20 })
+        }
+        Row({ space: 12 }) {
+          Button('上一页').enabled(this.currentPage > 1 && !this.loading).backgroundColor('#E4F2F5').fontColor('#176B87')
+            .onClick(() => { this.currentPage -= 1; void this.load(); })
+          Text(`${this.currentPage} / ${this.totalPages}`).fontSize(13).fontColor('#516B80')
+          Button('下一页').enabled(this.currentPage < this.totalPages && !this.loading).backgroundColor('#E4F2F5').fontColor('#176B87')
+            .onClick(() => { this.currentPage += 1; void this.load(); })
+        }.width('100%').justifyContent(FlexAlign.Center).padding({ top: 8, bottom: 16 })
+      }.width('100%').height('100%').backgroundColor('#EDF5F7')
+      this.formDialog()
+      this.detailDialog()
+      this.decisionDialog()
+    }.width('100%').height('100%')
   }
 }
