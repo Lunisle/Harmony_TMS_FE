@@ -355,6 +355,18 @@ export struct AdminStudentPage {
       this.showToast('请输入正确的 11 位手机号');
       return;
     }
+    if (this.editingId <= 0) {
+      try {
+        const existing = await ApiClient.getStudents(1, 10, studentNo);
+        if (existing.items.some((student: StudentListItem) => student.studentNo === studentNo)) {
+          this.showToast('该学生学号已存在，请更换学号');
+          return;
+        }
+      } catch (_) {
+        this.showToast('学号重复校验失败，请检查网络后重试');
+        return;
+      }
+    }
     const data: StudentMutationRequest = {
       studentNo: studentNo,
       name: name,
