@@ -37,8 +37,16 @@ export struct ClassroomRequestPage {
   @State detailVisible: boolean = false;
   @State cancelVisible: boolean = false;
   @State editingRequestId: number = 0;
-  @State startTime: string = '';
-  @State endTime: string = '';
+  @State startYear: string = '';
+  @State startMonth: string = '';
+  @State startDay: string = '';
+  @State startHour: string = '';
+  @State startMinute: string = '';
+  @State endYear: string = '';
+  @State endMonth: string = '';
+  @State endDay: string = '';
+  @State endHour: string = '';
+  @State endMinute: string = '';
   @State participantCount: string = '';
   @State purpose: string = '';
   @State requests: ClassroomRequestPreview[] = [
@@ -146,11 +154,39 @@ export struct ClassroomRequestPage {
     return `${matched[1]}年${matched[2]}月${matched[3]}日${matched[4]}时${matched[5]}分`;
   }
 
+  private setStartParts(value: string): void {
+    const matched = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    this.startYear = matched?.[1] ?? ''; this.startMonth = matched?.[2] ?? ''; this.startDay = matched?.[3] ?? '';
+    this.startHour = matched?.[4] ?? ''; this.startMinute = matched?.[5] ?? '';
+  }
+
+  private setEndParts(value: string): void {
+    const matched = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    this.endYear = matched?.[1] ?? ''; this.endMonth = matched?.[2] ?? ''; this.endDay = matched?.[3] ?? '';
+    this.endHour = matched?.[4] ?? ''; this.endMinute = matched?.[5] ?? '';
+  }
+
+  private buildUtcTime(yearText: string, monthText: string, dayText: string, hourText: string, minuteText: string): string | null {
+    const year = Number(yearText); const month = Number(monthText); const day = Number(dayText); const hour = Number(hourText); const minute = Number(minuteText);
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day) || !Number.isInteger(hour) || !Number.isInteger(minute)) return null;
+    const date = new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0));
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day || date.getUTCHours() !== hour || date.getUTCMinutes() !== minute) return null;
+    return date.toISOString();
+  }
+
+  @Builder
+  private requiredLabel(label: string) {
+    Row({ space: 3 }) {
+      Text('*').fontSize(15).fontColor('#D94B4B').fontWeight(FontWeight.Bold)
+      Text(label).fontSize(13).fontColor('#516B80')
+    }.width('100%').justifyContent(FlexAlign.Start)
+  }
+
   private openApplication(item: RequestClassroomPreview): void {
     this.selectedClassroom = item;
     this.editingRequestId = 0;
-    this.startTime = '';
-    this.endTime = '';
+    this.setStartParts('');
+    this.setEndParts('');
     this.participantCount = '';
     this.purpose = '';
     this.formVisible = true;
@@ -160,28 +196,20 @@ export struct ClassroomRequestPage {
     const classroom = this.classrooms.find((v: RequestClassroomPreview) => v.id === item.classroomId);
     this.selectedClassroom = classroom ?? { id: item.classroomId, campus: '', building: '', roomNo: item.classroomName, type: '', capacity: item.participantCount };
     this.editingRequestId = item.id;
-    this.startTime = item.startTime.substring(0, 16).replace('T', ' ');
-    this.endTime = item.endTime.substring(0, 16).replace('T', ' ');
+    this.setStartParts(item.startTime);
+    this.setEndParts(item.endTime);
     this.participantCount = `${item.participantCount}`;
     this.purpose = item.purpose;
     this.detailVisible = false;
     this.formVisible = true;
   }
 
-  private validTime(value: string): boolean {
-    return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(value);
-  }
-
   private async submitApplication(): Promise<void> {
     if (this.selectedClassroom === null) return;
     const count = Number(this.participantCount);
-    if (!this.validTime(this.startTime) || !this.validTime(this.endTime)) {
-      this.showToast('请按 YYYY-MM-DD HH:mm 填写使用时间');
-      return;
-    }
-    const start = Date.parse(this.startTime.replace(' ', 'T'));
-    const end = Date.parse(this.endTime.replace(' ', 'T'));
-    if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
+    const startTime = this.buildUtcTime(this.startYear, this.startMonth, this.startDay, this.startHour, this.startMinute);
+    const endTime = this.buildUtcTime(this.endYear, this.endMonth, this.endDay, this.endHour, this.endMinute);
+    if (startTime === null || endTime === null || Date.parse(startTime) >= Date.parse(endTime)) {
       this.showToast('结束时间必须晚于开始时间');
       return;
     }
@@ -195,7 +223,7 @@ export struct ClassroomRequestPage {
     }
     try {
       const editing = this.editingRequestId > 0;
-      const payload: ClassroomRequestMutationRequest = { classroomId: this.selectedClassroom.id, participantCount: count, startTime: new Date(start).toISOString(), endTime: new Date(end).toISOString(), purpose: this.purpose.trim() };
+      const payload: ClassroomRequestMutationRequest = { classroomId: this.selectedClassroom.id, participantCount: count, startTime: startTime, endTime: endTime, purpose: this.purpose.trim() };
       if (editing) {
         const updatePayload: ClassroomRequestUpdateRequest = { classroomId: payload.classroomId, participantCount: payload.participantCount, startTime: payload.startTime, endTime: payload.endTime, purpose: payload.purpose };
         await ApiClient.updateClassroomRequest(this.editingRequestId, updatePayload);
@@ -365,10 +393,22 @@ export struct ClassroomRequestPage {
               Text(`${this.selectedClassroom.roomNo} · ${this.selectedClassroom.type} · ${this.selectedClassroom.capacity}座`)
                 .fontSize(16).fontWeight(FontWeight.Bold).fontColor('#17324D').width('100%')
             }.width('100%').padding(12).backgroundColor('#EAF5F7').borderRadius(10).alignItems(HorizontalAlign.Start)
-            TextInput({ placeholder: '开始时间 YYYY-MM-DD HH:mm', text: this.startTime }).height(46).backgroundColor('#F1F6F8').borderRadius(10)
-              .onChange((value: string) => this.startTime = value)
-            TextInput({ placeholder: '结束时间 YYYY-MM-DD HH:mm', text: this.endTime }).height(46).backgroundColor('#F1F6F8').borderRadius(10)
-              .onChange((value: string) => this.endTime = value)
+            this.requiredLabel('开始时间')
+            Row({ space: 5 }) {
+              TextInput({ placeholder: '年', text: this.startYear }).type(InputType.Number).maxLength(4).layoutWeight(13).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startYear = value)
+              TextInput({ placeholder: '月', text: this.startMonth }).type(InputType.Number).maxLength(2).layoutWeight(10).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startMonth = value)
+              TextInput({ placeholder: '日', text: this.startDay }).type(InputType.Number).maxLength(2).layoutWeight(10).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startDay = value)
+              TextInput({ placeholder: '时', text: this.startHour }).type(InputType.Number).maxLength(2).layoutWeight(10).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startHour = value)
+              TextInput({ placeholder: '分', text: this.startMinute }).type(InputType.Number).maxLength(2).layoutWeight(10).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startMinute = value)
+            }.width('100%')
+            this.requiredLabel('结束时间')
+            Row({ space: 5 }) {
+              TextInput({ placeholder: '年', text: this.endYear }).type(InputType.Number).maxLength(4).layoutWeight(13).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endYear = value)
+              TextInput({ placeholder: '月', text: this.endMonth }).type(InputType.Number).maxLength(2).layoutWeight(10).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endMonth = value)
+              TextInput({ placeholder: '日', text: this.endDay }).type(InputType.Number).maxLength(2).layoutWeight(10).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endDay = value)
+              TextInput({ placeholder: '时', text: this.endHour }).type(InputType.Number).maxLength(2).layoutWeight(10).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endHour = value)
+              TextInput({ placeholder: '分', text: this.endMinute }).type(InputType.Number).maxLength(2).layoutWeight(10).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endMinute = value)
+            }.width('100%')
             TextInput({ placeholder: '使用人数', text: this.participantCount }).type(InputType.Number).height(46)
               .backgroundColor('#F1F6F8').borderRadius(10).onChange((value: string) => this.participantCount = value)
             TextArea({ placeholder: '使用用途和申请说明（最多 255 字）', text: this.purpose }).height(100)
