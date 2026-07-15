@@ -45,8 +45,8 @@ export struct AdminClassroomRequestPage {
     this.decisionVisible = true;
   }
 
-  private openDetail(item: ClassroomRequestListItem): void {
-    this.selected = item;
+  private async openDetail(item: ClassroomRequestListItem): Promise<void> {
+    try { this.selected = await ApiClient.getClassroomRequest(item.id); } catch (_) { this.selected = item; }
     this.detailVisible = true;
   }
 
@@ -78,7 +78,7 @@ export struct AdminClassroomRequestPage {
       Row() { Text(`${item.startTime} 至 ${item.endTime}`).fontSize(12).fontColor('#516B80').layoutWeight(1); Text(`${item.participantCount} 人`).fontSize(12).fontColor('#516B80') }
       Text(item.purpose).fontSize(13).fontColor('#516B80').width('100%').maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
       Row({ space: 8 }) {
-        Button('详情').layoutWeight(1).backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.openDetail(item))
+        Button('详情').layoutWeight(1).backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => { void this.openDetail(item); })
         Button('通过').layoutWeight(1).backgroundColor('#DDF2EA').fontColor('#167C68').enabled(item.status === 'PENDING').onClick(() => this.openDecision(item, 'APPROVED'))
         Button('驳回').layoutWeight(1).backgroundColor('#F7E5E5').fontColor('#B04A4A').enabled(item.status === 'PENDING').onClick(() => this.openDecision(item, 'REJECTED'))
       }

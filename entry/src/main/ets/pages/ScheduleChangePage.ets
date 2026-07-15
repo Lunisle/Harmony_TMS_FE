@@ -35,6 +35,11 @@ export struct ScheduleChangePage {
     finally { this.loading = false; }
   }
 
+  private async openDetail(item: ScheduleChangeListItem): Promise<void> {
+    try { this.selected = await ApiClient.getScheduleChange(item.id); } catch (_) { this.selected = item; }
+    this.detailVisible = true;
+  }
+
   private statusText(value: string): string {
     if (value === 'PENDING') return '待审批';
     if (value === 'APPROVED') return '已通过';
@@ -86,7 +91,7 @@ export struct ScheduleChangePage {
     Column({ space: 7 }) {
       Row() { Column({ space: 3 }) { Text(item.courseName ?? `课程 ${item.courseId}`).fontSize(16).fontWeight(FontWeight.Medium).fontColor('#17324D'); Text(`${item.teacherName ?? `教师 ${item.teacherId}`} · ${item.classGroupName ?? `班级 ${item.classGroupId}`}`).fontSize(12).fontColor('#718096') }.layoutWeight(1).alignItems(HorizontalAlign.Start); Text(this.statusText(item.status)).fontSize(12).fontColor('#176B87').backgroundColor('#E4F2F5').padding({ left: 8, right: 8, top: 4, bottom: 4 }).borderRadius(9) }
       Text(`${item.hours} 课时 · ${item.reason}`).fontSize(13).fontColor('#516B80').width('100%').maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
-      Button('查看详情').width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => { this.selected = item; this.detailVisible = true; })
+      Button('查看详情').width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => { void this.openDetail(item); })
       if (item.status === 'PENDING') { Row({ space: 8 }) { Button('通过').layoutWeight(1).backgroundColor('#DDF2EA').fontColor('#167C68').onClick(() => { void this.updateStatus(item, 'APPROVED'); }); Button('驳回').layoutWeight(1).backgroundColor('#F7E5E5').fontColor('#B04A4A').onClick(() => { void this.updateStatus(item, 'REJECTED'); }) }.width('100%') }
       if (item.status === 'DRAFT') { Row({ space: 8 }) { Button('编辑草稿').layoutWeight(1).backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.openEdit(item)); Button('删除草稿').layoutWeight(1).backgroundColor('#F7E5E5').fontColor('#B04A4A').onClick(() => { void this.remove(item); }) }.width('100%') }
     }.width('100%').padding(15).backgroundColor(Color.White).borderRadius(15).margin({ bottom: 10 })

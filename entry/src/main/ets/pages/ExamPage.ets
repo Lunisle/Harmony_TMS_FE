@@ -42,6 +42,10 @@ export struct ExamPage {
   private teacherLabel(): string { const item = this.teachers.find((v: TeacherListItem) => v.id === Number(this.invigilatorId)); return item ? item.name : '选择监考教师（可选）'; }
   private semesterLabel(): string { const item = this.semesters.find((v: SemesterOption) => v.id === Number(this.semesterId)); return item ? item.label : '选择学期'; }
   private async load(): Promise<void> { this.loading = true; try { this.exams = (await ApiClient.getExams(1, 100, this.keyword)).items; } catch (error) { this.showToast(error instanceof Error ? error.message : '加载考试安排失败'); } finally { this.loading = false; } }
+  private async openDetail(item: ExamListItem): Promise<void> {
+    try { this.selected = await ApiClient.getExam(item.id); } catch (_) { this.selected = item; }
+    this.detailVisible = true;
+  }
   private showToast(message: string): void { try { this.getUIContext().getPromptAction().showToast({ message, duration: 2200 }); } catch (_) {} }
   private openCreate(): void { this.editingId = 0; this.semesterId = ''; this.courseId = ''; this.classGroupId = ''; this.classroomId = ''; this.startTime = ''; this.endTime = ''; this.invigilatorId = ''; this.formVisible = true; }
   private openEdit(item: ExamListItem): void {
@@ -66,7 +70,7 @@ export struct ExamPage {
     } catch (error) { this.showToast(error instanceof Error ? error.message : '保存考试安排失败'); }
   }
   private async remove(item: ExamListItem): Promise<void> { try { await ApiClient.deleteExam(item.id); await this.load(); this.showToast('考试安排已删除'); } catch (error) { this.showToast(error instanceof Error ? error.message : '删除考试安排失败'); } }
-  @Builder private examRow(item: ExamListItem) { Column({ space: 7 }) { Row() { Column({ space: 3 }) { Text(item.courseName ?? `课程 ${item.courseId}`).fontSize(16).fontWeight(FontWeight.Medium).fontColor('#17324D'); Text(`${item.classGroupName ?? `班级 ${item.classGroupId}`} · ${item.classroomRoomNo ?? `教室 ${item.classroomId}`}`).fontSize(12).fontColor('#718096') }.layoutWeight(1).alignItems(HorizontalAlign.Start); Text(`学期 ${item.semesterId}`).fontSize(12).fontColor('#176B87') }; Text(`${item.startTime} 至 ${item.endTime}`).fontSize(13).fontColor('#516B80').width('100%'); Text(`监考：${item.invigilatorName ?? '未安排'}`).fontSize(12).fontColor('#8999A4').width('100%'); Row({ space: 8 }) { Button('详情').layoutWeight(1).backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => { this.selected = item; this.detailVisible = true; }); Button('删除').layoutWeight(1).backgroundColor('#F7E5E5').fontColor('#B04A4A').onClick(() => { void this.remove(item); }) }.width('100%') }.width('100%').padding(15).backgroundColor(Color.White).borderRadius(15).margin({ bottom: 10 }) }
+  @Builder private examRow(item: ExamListItem) { Column({ space: 7 }) { Row() { Column({ space: 3 }) { Text(item.courseName ?? `课程 ${item.courseId}`).fontSize(16).fontWeight(FontWeight.Medium).fontColor('#17324D'); Text(`${item.classGroupName ?? `班级 ${item.classGroupId}`} · ${item.classroomRoomNo ?? `教室 ${item.classroomId}`}`).fontSize(12).fontColor('#718096') }.layoutWeight(1).alignItems(HorizontalAlign.Start); Text(`学期 ${item.semesterId}`).fontSize(12).fontColor('#176B87') }; Text(`${item.startTime} 至 ${item.endTime}`).fontSize(13).fontColor('#516B80').width('100%'); Text(`监考：${item.invigilatorName ?? '未安排'}`).fontSize(12).fontColor('#8999A4').width('100%'); Row({ space: 8 }) { Button('详情').layoutWeight(1).backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => { void this.openDetail(item); }); Button('删除').layoutWeight(1).backgroundColor('#F7E5E5').fontColor('#B04A4A').onClick(() => { void this.remove(item); }) }.width('100%') }.width('100%').padding(15).backgroundColor(Color.White).borderRadius(15).margin({ bottom: 10 }) }
 
   @Builder private detailDialog() {
     if (this.detailVisible && this.selected !== null) {

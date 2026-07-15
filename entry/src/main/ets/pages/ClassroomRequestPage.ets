@@ -213,8 +213,18 @@ export struct ClassroomRequestPage {
     return maximum + 1;
   }
 
-  private openRequestDetail(item: ClassroomRequestPreview): void {
-    this.selectedRequest = item;
+  private async openRequestDetail(item: ClassroomRequestPreview): Promise<void> {
+    try {
+      const detail = await ApiClient.getClassroomRequest(item.id);
+      this.selectedRequest = {
+        id: detail.id, classroomId: detail.classroomId, classroomName: detail.classroomRoomNo,
+        classroomLocation: `${detail.classroomCampus ?? ''} · ${detail.classroomBuilding ?? ''}`,
+        startTime: detail.startTime, endTime: detail.endTime, participantCount: detail.participantCount,
+        purpose: detail.purpose, status: detail.status
+      };
+    } catch (_) {
+      this.selectedRequest = item;
+    }
     this.detailVisible = true;
   }
 
@@ -282,7 +292,7 @@ export struct ClassroomRequestPage {
         Text('查看详情 ›').fontSize(12).fontColor('#176B87')
       }.width('100%')
     }.width('100%').padding(16).backgroundColor(Color.White).borderRadius(15).margin({ bottom: 10 })
-      .onClick(() => this.openRequestDetail(item))
+      .onClick(() => { void this.openRequestDetail(item); })
   }
 
   @Builder
