@@ -106,6 +106,7 @@ export struct HomePage {
             this.notice(STATIC_ANNOUNCEMENTS[0].id, STATIC_ANNOUNCEMENTS[0].title, STATIC_ANNOUNCEMENTS[0].date, true)
             this.notice(STATIC_ANNOUNCEMENTS[1].id, STATIC_ANNOUNCEMENTS[1].title, STATIC_ANNOUNCEMENTS[1].date, false)
             this.notice(STATIC_ANNOUNCEMENTS[2].id, STATIC_ANNOUNCEMENTS[2].title, STATIC_ANNOUNCEMENTS[2].date, false)
+            this.notice(STATIC_ANNOUNCEMENTS[3].id, STATIC_ANNOUNCEMENTS[3].title, STATIC_ANNOUNCEMENTS[3].date, false)
           }
           .width('100%')
           .margin({ top: 8 })
