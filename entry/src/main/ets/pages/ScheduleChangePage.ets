@@ -26,7 +26,7 @@ export struct ScheduleChangePage {
 
   aboutToAppear(): void { void this.initialize(); }
   private async initialize(): Promise<void> { await this.loadOptions(); await this.load(); }
-  private async loadOptions(): Promise<void> { try { this.courses = await ApiClient.getCourses(); this.teachers = (await ApiClient.getTeachers(1, 100)).items; this.classGroups = await ApiClient.getClassGroups(); } catch (error) { this.showToast(error instanceof Error ? error.message : '加载调课选项失败'); } }
+  private async loadOptions(): Promise<void> { try { this.courses = await ApiClient.getCourses(); this.teachers = (await ApiClient.getTeachers(1, 100)).items; if (this.user.role === 'TEACHER' && this.user.teacherId !== undefined && this.user.teacherId !== null) { this.teachers = this.teachers.filter((v: TeacherListItem) => v.id === this.user.teacherId); } this.classGroups = await ApiClient.getClassGroups(); } catch (error) { this.showToast(error instanceof Error ? error.message : '加载调课选项失败'); } }
   private cycleId(current: string, values: number[]): string { if (values.length === 0) return ''; const id = Number(current); const index = values.indexOf(id); return `${index < 0 || index >= values.length - 1 ? values[0] : values[index + 1]}`; }
   private courseLabel(): string { const item = this.courses.find((v: CourseSummary) => v.id === Number(this.courseId)); return item ? `${item.code} ${item.name}` : '选择课程'; }
   private teacherLabel(): string { const item = this.teachers.find((v: TeacherListItem) => v.id === Number(this.teacherId)); return item ? item.name : '选择教师'; }
@@ -57,7 +57,7 @@ export struct ScheduleChangePage {
   private canApprove(): boolean { return this.user.role === 'DEPARTMENT_ADMIN' || this.user.role === 'ACADEMIC' || this.user.role === 'ADMIN'; }
 
   private openCreate(): void {
-    this.editingId = 0; this.teacherId = ''; this.courseId = ''; this.classGroupId = ''; this.hours = '1'; this.reason = ''; this.formVisible = true;
+    this.editingId = 0; this.teacherId = this.user.role === 'TEACHER' && this.user.teacherId ? `${this.user.teacherId}` : ''; this.courseId = ''; this.classGroupId = ''; this.hours = '1'; this.reason = ''; this.formVisible = true;
   }
 
   private openEdit(item: ScheduleChangeListItem): void {
