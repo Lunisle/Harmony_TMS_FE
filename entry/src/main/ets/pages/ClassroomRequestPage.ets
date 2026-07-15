@@ -8,6 +8,7 @@ interface RequestClassroomPreview {
   roomNo: string;
   type: string;
   capacity: number;
+  status: string;
 }
 
 interface ClassroomRequestPreview {
@@ -31,6 +32,7 @@ export struct ClassroomRequestPage {
   @State campusFilter: string = '';
   @State typeFilter: string = '';
   @State capacityFilter: number = 0;
+  @State filterVisible: boolean = false;
   @State selectedClassroom: RequestClassroomPreview | null = null;
   @State selectedRequest: ClassroomRequestPreview | null = null;
   @State formVisible: boolean = false;
@@ -67,12 +69,20 @@ export struct ClassroomRequestPage {
     }
   ];
 
+  @State classroomTotal: number = 0;
+  @State classroomCurrentPage: number = 1;
+  @State classroomTotalPages: number = 1;
+  @State requestTotal: number = 0;
+  @State requestCurrentPage: number = 1;
+  @State requestTotalPages: number = 1;
+  @State pageSize: number = 10;
+
   @State classrooms: RequestClassroomPreview[] = [
-    { id: 1, campus: '主校区', building: '第一教学楼', roomNo: 'A101', type: '多媒体教室', capacity: 80 },
-    { id: 2, campus: '主校区', building: '第一教学楼', roomNo: 'A203', type: '智慧教室', capacity: 48 },
-    { id: 3, campus: '主校区', building: '第二教学楼', roomNo: 'B305', type: '普通教室', capacity: 60 },
-    { id: 4, campus: '沙河校区', building: '综合楼', roomNo: 'C210', type: '机房', capacity: 50 },
-    { id: 5, campus: '沙河校区', building: '实验楼', roomNo: 'D401', type: '实验室', capacity: 32 }
+    { id: 1, campus: '主校区', building: '第一教学楼', roomNo: 'A101', type: '多媒体教室', capacity: 80, status: 'AVAILABLE' },
+    { id: 2, campus: '主校区', building: '第一教学楼', roomNo: 'A203', type: '智慧教室', capacity: 48, status: 'AVAILABLE' },
+    { id: 3, campus: '主校区', building: '第二教学楼', roomNo: 'B305', type: '普通教室', capacity: 60, status: 'AVAILABLE' },
+    { id: 4, campus: '沙河校区', building: '综合楼', roomNo: 'C210', type: '机房', capacity: 50, status: 'AVAILABLE' },
+    { id: 5, campus: '沙河校区', building: '实验楼', roomNo: 'D401', type: '实验室', capacity: 32, status: 'AVAILABLE' }
   ];
   private campuses: string[] = ['主校区', '沙河校区'];
   private classroomTypes: string[] = ['多媒体教室', '智慧教室', '普通教室', '机房', '实验室'];
@@ -82,18 +92,23 @@ export struct ClassroomRequestPage {
 
   private async loadRemoteData(): Promise<void> {
     try {
-      const classrooms = await ApiClient.getClassrooms(1, 100);
+      const classrooms = await ApiClient.getClassrooms(this.classroomCurrentPage, this.pageSize, this.keyword,
+        this.campusFilter, '', this.typeFilter, 'AVAILABLE');
       this.classrooms = classrooms.items.map((item: ClassroomListItem): RequestClassroomPreview => ({
         id: item.id, campus: item.campus ?? '', building: item.building ?? '', roomNo: item.roomNo,
-        type: item.type ?? '', capacity: item.capacity
+        type: item.type ?? '', capacity: item.capacity, status: item.status
       }));
-      const requests = await ApiClient.getClassroomRequests(1, 100, '', this.user.id);
+      this.classroomTotal = classrooms.total;
+      this.classroomTotalPages = classrooms.totalPages;
+      const requests = await ApiClient.getClassroomRequests(this.requestCurrentPage, this.pageSize, '', this.user.id);
       this.requests = requests.items.map((item: ClassroomRequestListItem): ClassroomRequestPreview => ({
         id: item.id, classroomId: item.classroomId, classroomName: item.classroomRoomNo,
         classroomLocation: `${item.classroomCampus ?? ''} · ${item.classroomBuilding ?? ''}`,
         startTime: item.startTime, endTime: item.endTime, participantCount: item.participantCount,
         purpose: item.purpose, status: item.status
       }));
+      this.requestTotal = requests.total;
+      this.requestTotalPages = requests.totalPages;
     } catch (error) {
       this.showToast(error instanceof Error ? error.message : '加载教室申请数据失败');
     }
@@ -122,6 +137,35 @@ export struct ClassroomRequestPage {
     if (current === 0) return values[0];
     const index = values.indexOf(current);
     return index < 0 || index >= values.length - 1 ? 0 : values[index + 1];
+  }
+
+  private filterOptions(placeholder: string, values: string[]): SelectOption[] {
+    const result: SelectOption[] = [{ value: placeholder }];
+    values.forEach((item: string) => result.push({ value: item }));
+    return result;
+  }
+
+  private textFilterIndex(value: string, values: string[]): number {
+    const index = values.indexOf(value);
+    return index < 0 ? 0 : index + 1;
+  }
+
+  private capacityFilterIndex(): number {
+    const index = this.capacityLevels.indexOf(this.capacityFilter);
+    return index < 0 ? 0 : index + 1;
+  }
+
+  private applyClassroomFilter(): void {
+    this.classroomCurrentPage = 1;
+    this.filterVisible = false;
+    void this.loadRemoteData();
+  }
+
+  private clearClassroomFilter(): void {
+    this.campusFilter = '';
+    this.typeFilter = '';
+    this.capacityFilter = 0;
+    this.applyClassroomFilter();
   }
 
   private statusText(status: string): string {
@@ -183,6 +227,10 @@ export struct ClassroomRequestPage {
   }
 
   private openApplication(item: RequestClassroomPreview): void {
+    if (item.status !== 'AVAILABLE') {
+      this.showToast('当前教室不可申请');
+      return;
+    }
     this.selectedClassroom = item;
     this.editingRequestId = 0;
     this.setStartParts('');
@@ -194,7 +242,7 @@ export struct ClassroomRequestPage {
 
   private openEditRequest(item: ClassroomRequestPreview): void {
     const classroom = this.classrooms.find((v: RequestClassroomPreview) => v.id === item.classroomId);
-    this.selectedClassroom = classroom ?? { id: item.classroomId, campus: '', building: '', roomNo: item.classroomName, type: '', capacity: item.participantCount };
+    this.selectedClassroom = classroom ?? { id: item.classroomId, campus: '', building: '', roomNo: item.classroomName, type: '', capacity: item.participantCount, status: 'AVAILABLE' };
     this.editingRequestId = item.id;
     this.setStartParts(item.startTime);
     this.setEndParts(item.endTime);
@@ -321,10 +369,7 @@ export struct ClassroomRequestPage {
           .backgroundColor(this.statusBackground(item.status)).padding({ left: 8, right: 8, top: 4, bottom: 4 }).borderRadius(9)
       }
       Text(item.classroomLocation).fontSize(12).fontColor('#718096').width('100%')
-      Row() {
-        Text(`${this.formatTime(item.startTime)} — ${this.formatTime(item.endTime)}`).fontSize(13).fontColor('#31566D').layoutWeight(1)
-        Text('查看详情 ›').fontSize(12).fontColor('#176B87')
-      }.width('100%')
+      Text('查看详情 ›').fontSize(12).fontColor('#176B87').width('100%').textAlign(TextAlign.End)
     }.width('100%').padding(16).backgroundColor(Color.White).borderRadius(15).margin({ bottom: 10 })
       .onClick(() => { void this.openRequestDetail(item); })
   }
@@ -334,17 +379,14 @@ export struct ClassroomRequestPage {
     Column() {
       Row({ space: 8 }) {
         TextInput({ placeholder: '搜索教室编号或楼栋', text: this.keyword }).layoutWeight(1).height(40)
-          .backgroundColor(Color.White).borderRadius(10).onChange((value: string) => this.keyword = value)
-        Button(this.campusFilter || '校区').height(38).backgroundColor('#E4F2F5').fontColor('#176B87')
-          .onClick(() => this.campusFilter = this.cycleText(this.campusFilter, this.campuses))
+          .backgroundColor(Color.White).borderRadius(10).onChange((value: string) => {
+            this.keyword = value;
+            this.classroomCurrentPage = 1;
+            void this.loadRemoteData();
+          })
+        Button('筛选').height(38).backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.filterVisible = true)
       }.width('100%').padding({ left: 20, right: 20, top: 12, bottom: 8 })
-      Row({ space: 8 }) {
-        Button(this.typeFilter || '全部类型').layoutWeight(1).height(36).fontSize(12).backgroundColor('#EAF5F7').fontColor('#31566D')
-          .onClick(() => this.typeFilter = this.cycleText(this.typeFilter, this.classroomTypes))
-        Button(this.capacityFilter > 0 ? `${this.capacityFilter}人以上` : '不限容量').layoutWeight(1).height(36).fontSize(12)
-          .backgroundColor('#EAF5F7').fontColor('#31566D').onClick(() => this.capacityFilter = this.cycleNumber(this.capacityFilter, this.capacityLevels))
-      }.width('100%').padding({ left: 20, right: 20, bottom: 10 })
-      Text(`找到 ${this.visibleClassrooms().length} 间可申请教室`).fontSize(12).fontColor('#718096').width('100%')
+      Text(`找到 ${this.classroomTotal} 间可申请教室`).fontSize(12).fontColor('#718096').width('100%')
         .padding({ left: 20, right: 20, bottom: 8 })
       if (this.visibleClassrooms().length === 0) {
         Column({ space: 8 }) {
@@ -357,6 +399,13 @@ export struct ClassroomRequestPage {
             (item: RequestClassroomPreview) => `${item.id}`)
         }.width('100%').layoutWeight(1).padding({ left: 20, right: 20, bottom: 16 })
       }
+      Row({ space: 12 }) {
+        Button('上一页').enabled(this.classroomCurrentPage > 1).backgroundColor('#E4F2F5').fontColor('#176B87')
+          .onClick(() => { this.classroomCurrentPage -= 1; void this.loadRemoteData(); })
+        Text(`${this.classroomCurrentPage} / ${this.classroomTotalPages}`).fontSize(13).fontColor('#516B80')
+        Button('下一页').enabled(this.classroomCurrentPage < this.classroomTotalPages).backgroundColor('#E4F2F5').fontColor('#176B87')
+          .onClick(() => { this.classroomCurrentPage += 1; void this.loadRemoteData(); })
+      }.width('100%').justifyContent(FlexAlign.Center).padding({ top: 8, bottom: 16 })
     }.width('100%').layoutWeight(1)
   }
 
@@ -368,13 +417,49 @@ export struct ClassroomRequestPage {
           Text('我的教室申请').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#17324D').width('100%')
           Text('查看审批进度，待审批申请可在使用前取消').fontSize(12).fontColor('#718096').width('100%')
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        Text(`${this.requests.length}条`).fontSize(12).fontColor('#176B87')
+        Text(`${this.requestTotal}条`).fontSize(12).fontColor('#176B87')
       }.width('100%').padding({ left: 20, right: 20, top: 16, bottom: 12 })
       List() {
         ForEach(this.requests, (item: ClassroomRequestPreview) => { ListItem() { this.requestCard(item) } },
           (item: ClassroomRequestPreview) => `${item.id}`)
       }.width('100%').layoutWeight(1).padding({ left: 20, right: 20, bottom: 16 })
+      Row({ space: 12 }) {
+        Button('上一页').enabled(this.requestCurrentPage > 1).backgroundColor('#E4F2F5').fontColor('#176B87')
+          .onClick(() => { this.requestCurrentPage -= 1; void this.loadRemoteData(); })
+        Text(`${this.requestCurrentPage} / ${this.requestTotalPages}`).fontSize(13).fontColor('#516B80')
+        Button('下一页').enabled(this.requestCurrentPage < this.requestTotalPages).backgroundColor('#E4F2F5').fontColor('#176B87')
+          .onClick(() => { this.requestCurrentPage += 1; void this.loadRemoteData(); })
+      }.width('100%').justifyContent(FlexAlign.Center).padding({ top: 8, bottom: 16 })
     }.width('100%').layoutWeight(1)
+  }
+
+  @Builder
+  private filterDialog() {
+    if (this.filterVisible) {
+      Stack() {
+        Column().width('100%').height('100%').backgroundColor('#66000000').onClick(() => this.filterVisible = false)
+        Column({ space: 14 }) {
+          Row() {
+            Text('筛选教室').fontSize(20).fontWeight(FontWeight.Bold).fontColor('#17324D').layoutWeight(1)
+            Text('×').fontSize(26).fontColor('#718096').onClick(() => this.filterVisible = false)
+          }
+          Text('筛选条件均可选择“任意”').fontSize(13).fontColor('#718096').width('100%')
+          Text('校区').fontSize(13).fontColor('#516B80').width('100%')
+          Select(this.filterOptions('任意校区', this.campuses)).selected(this.textFilterIndex(this.campusFilter, this.campuses)).width('100%').height(44)
+            .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.campusFilter = index > 0 ? this.campuses[index - 1] : '')
+          Text('教室类型').fontSize(13).fontColor('#516B80').width('100%')
+          Select(this.filterOptions('任意类型', this.classroomTypes)).selected(this.textFilterIndex(this.typeFilter, this.classroomTypes)).width('100%').height(44)
+            .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.typeFilter = index > 0 ? this.classroomTypes[index - 1] : '')
+          Text('容纳人数').fontSize(13).fontColor('#516B80').width('100%')
+          Select(this.filterOptions('不限容量', ['30人及以上', '50人及以上', '80人及以上'])).selected(this.capacityFilterIndex()).width('100%').height(44)
+            .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.capacityFilter = index > 0 ? this.capacityLevels[index - 1] : 0)
+          Row({ space: 10 }) {
+            Button('清空').layoutWeight(1).backgroundColor('#E8EFF2').fontColor('#516B80').onClick(() => this.clearClassroomFilter())
+            Button('应用筛选').layoutWeight(1).backgroundColor('#197C93').fontColor(Color.White).onClick(() => this.applyClassroomFilter())
+          }
+        }.width('88%').padding(20).backgroundColor('#F7FCFD').borderRadius(20)
+      }.width('100%').height('100%')
+    }
   }
 
   @Builder
@@ -481,8 +566,6 @@ export struct ClassroomRequestPage {
             Text('教室申请').fontSize(22).fontWeight(FontWeight.Bold).fontColor('#17324D').width('100%')
             Text(this.user.name ?? this.user.username).fontSize(12).fontColor('#718096').width('100%')
           }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-          Text('静态预览').fontSize(11).fontColor('#176B87').backgroundColor('#DCEFF2')
-            .padding({ left: 8, right: 8, top: 4, bottom: 4 }).borderRadius(8)
         }.width('100%').padding({ left: 18, right: 20, top: 16, bottom: 10 })
         this.tabSelector()
         if (this.activeTab === 0) {
@@ -494,6 +577,7 @@ export struct ClassroomRequestPage {
       this.applicationDialog()
       this.requestDetailDialog()
       this.cancelDialog()
+      this.filterDialog()
     }.width('100%').height('100%')
   }
 }
