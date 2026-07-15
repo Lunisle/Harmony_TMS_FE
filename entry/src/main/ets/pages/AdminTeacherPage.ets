@@ -86,6 +86,30 @@ export struct AdminTeacherPage {
     return index < 0 || index >= values.length - 1 ? '' : values[index + 1];
   }
 
+  private departmentSelectIndex(id: number): number {
+    const index = this.options.departments.findIndex((department: TeacherOptionDepartment) => department.id === id);
+    return index >= 0 ? index + 1 : 0;
+  }
+
+  private textSelectIndex(value: string, values: string[]): number {
+    const index = values.indexOf(value);
+    return index >= 0 ? index + 1 : 0;
+  }
+
+  private departmentSelectOptions(placeholder: string): SelectOption[] {
+    const result: SelectOption[] = [{ value: placeholder }];
+    this.options.departments.forEach((department: TeacherOptionDepartment) => {
+      result.push({ value: department.name });
+    });
+    return result;
+  }
+
+  private textSelectOptions(placeholder: string, values: string[]): SelectOption[] {
+    const result: SelectOption[] = [{ value: placeholder }];
+    values.forEach((value: string) => result.push({ value }));
+    return result;
+  }
+
   private applyFilter(): void {
     this.currentPage = 1;
     this.filterVisible = false;
@@ -208,6 +232,8 @@ export struct AdminTeacherPage {
         Text(item.name).fontSize(14).fontWeight(FontWeight.Medium).fontColor('#17324D').width('100%')
         Text(item.employeeNo).fontSize(12).fontColor('#718096').width('100%')
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+      Text(item.teacherType ?? '未设置').fontSize(13).fontColor('#516B80').width(72).textAlign(TextAlign.Center)
+        .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
       Text(item.title ?? '未设置').fontSize(13).fontColor('#516B80').width(62).textAlign(TextAlign.Center)
         .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
       Text('详情').fontSize(13).fontColor('#176B87').width(48).textAlign(TextAlign.Center)
@@ -252,13 +278,12 @@ export struct AdminTeacherPage {
             Text('筛选教师').fontSize(20).fontWeight(FontWeight.Bold).fontColor('#17324D').layoutWeight(1)
             Text('×').fontSize(26).fontColor('#718096').onClick(() => this.filterVisible = false)
           }
-          Text('点击选项可依次切换').fontSize(13).fontColor('#718096').width('100%')
-          Button(this.departmentName(this.departmentId)).width('100%').backgroundColor('#EAF5F7').fontColor('#31566D')
-            .onClick(() => this.departmentId = this.cycleDepartment(this.departmentId))
-          Button(this.teacherType.length > 0 ? this.teacherType : '全部教师类型').width('100%').backgroundColor('#EAF5F7').fontColor('#31566D')
-            .onClick(() => this.teacherType = this.cycleText(this.teacherType, this.options.teacherTypes))
-          Button(this.titleFilter.length > 0 ? this.titleFilter : '全部职称').width('100%').backgroundColor('#EAF5F7').fontColor('#31566D')
-            .onClick(() => this.titleFilter = this.cycleText(this.titleFilter, this.options.titles))
+          Select(this.departmentSelectOptions('任意部门')).selected(this.departmentSelectIndex(this.departmentId)).width('100%').height(44)
+            .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.departmentId = index > 0 ? this.options.departments[index - 1].id : 0)
+          Select(this.textSelectOptions('任意教师类型', this.options.teacherTypes)).selected(this.textSelectIndex(this.teacherType, this.options.teacherTypes)).width('100%').height(44)
+            .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.teacherType = index > 0 ? this.options.teacherTypes[index - 1] : '')
+          Select(this.textSelectOptions('任意职称', this.options.titles)).selected(this.textSelectIndex(this.titleFilter, this.options.titles)).width('100%').height(44)
+            .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.titleFilter = index > 0 ? this.options.titles[index - 1] : '')
           Row({ space: 10 }) {
             Button('清空').layoutWeight(1).backgroundColor('#E8EFF2').fontColor('#516B80').onClick(() => this.clearFilter())
             Button('应用筛选').layoutWeight(1).backgroundColor('#197C93').fontColor(Color.White).onClick(() => this.applyFilter())
@@ -283,12 +308,12 @@ export struct AdminTeacherPage {
               .onChange((value: string) => this.formEmployeeNo = value)
             TextInput({ placeholder: '教师姓名（必填）', text: this.formName }).height(46).backgroundColor('#F1F6F8').borderRadius(10)
               .onChange((value: string) => this.formName = value)
-            Button(this.formDepartmentId > 0 ? this.departmentName(this.formDepartmentId) : '选择所属部门（可选）').width('100%')
-              .backgroundColor('#EAF5F7').fontColor('#31566D').onClick(() => this.formDepartmentId = this.cycleDepartment(this.formDepartmentId))
-            TextInput({ placeholder: '教师类型（如：专任教师）', text: this.formTeacherType }).height(46).backgroundColor('#F1F6F8').borderRadius(10)
-              .onChange((value: string) => this.formTeacherType = value)
-            TextInput({ placeholder: '职称（如：讲师）', text: this.formTitle }).height(46).backgroundColor('#F1F6F8').borderRadius(10)
-              .onChange((value: string) => this.formTitle = value)
+            Select(this.departmentSelectOptions('选择所属部门（可选）')).selected(this.departmentSelectIndex(this.formDepartmentId)).width('100%').height(46)
+              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.formDepartmentId = index > 0 ? this.options.departments[index - 1].id : 0)
+            Select(this.textSelectOptions('选择教师类型（可选）', this.options.teacherTypes)).selected(this.textSelectIndex(this.formTeacherType, this.options.teacherTypes)).width('100%').height(46)
+              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.formTeacherType = index > 0 ? this.options.teacherTypes[index - 1] : '')
+            Select(this.textSelectOptions('选择职称（可选）', this.options.titles)).selected(this.textSelectIndex(this.formTitle, this.options.titles)).width('100%').height(46)
+              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.formTitle = index > 0 ? this.options.titles[index - 1] : '')
             TextInput({ placeholder: '联系电话（可选）', text: this.formPhone }).type(InputType.PhoneNumber).height(46).backgroundColor('#F1F6F8').borderRadius(10)
               .onChange((value: string) => this.formPhone = value)
             Button(this.saving ? '保存中…' : '保存').width('100%').height(48).backgroundColor('#197C93').fontColor(Color.White)
@@ -334,6 +359,7 @@ export struct AdminTeacherPage {
         }.width('100%').padding({ left: 20, right: 20, bottom: 8 })
         Row() {
           Text('教师').layoutWeight(1).fontSize(13).fontColor('#516B80')
+          Text('类型').width(72).textAlign(TextAlign.Center).fontSize(13).fontColor('#516B80')
           Text('职称').width(62).textAlign(TextAlign.Center).fontSize(13).fontColor('#516B80')
           Text('详情').width(48).textAlign(TextAlign.Center).fontSize(13).fontColor('#516B80')
         }.width('100%').padding({ left: 28, right: 28, top: 12, bottom: 12 }).backgroundColor('#E4F2F5')
