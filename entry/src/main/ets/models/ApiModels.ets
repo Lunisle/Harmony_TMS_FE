@@ -16,6 +16,10 @@ export interface TeacherInfo {
   id: number;
   employeeNo: string;
   name: string;
+  departmentName?: string | null;
+  teacherType?: string | null;
+  title?: string | null;
+  phone?: string | null;
 }
 
 export interface TeacherListItem {
@@ -327,6 +331,9 @@ export interface StudentProfile {
   classGroup?: ClassGroupInfo | null;
   grade: number | null;
   status: string;
+  classGroupName?: string | null;
+  majorName?: string | null;
+  departmentName?: string | null;
 }
 
 export interface StudentListItem {
@@ -405,7 +412,10 @@ export interface UserInfo {
   id: number;
   username: string;
   name?: string;
+  displayName?: string;
   role: string;
+  roleLabel?: string;
+  isAdministrator?: boolean;
   teacherId?: number | null;
   studentId?: number | null;
   student: StudentProfile | null;
@@ -413,6 +423,28 @@ export interface UserInfo {
   departmentId?: number;
   department?: DepartmentInfo | null;
   teacher?: TeacherInfo | null;
+}
+
+export interface CurrentUserData {
+  user: CurrentUserAccount;
+  identity: CurrentUserIdentity;
+  teacherProfile: TeacherInfo | null;
+  studentProfile: StudentProfile | null;
+}
+
+export interface CurrentUserAccount {
+  id: number;
+  username: string;
+  name: string;
+  displayName?: string;
+  enabled: boolean;
+}
+
+export interface CurrentUserIdentity {
+  role: string;
+  roleCode: string;
+  roleLabel: string;
+  isAdministrator: boolean;
 }
 
 export interface LoginRequest {

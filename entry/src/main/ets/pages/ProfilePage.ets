@@ -37,18 +37,28 @@ export struct ProfilePage {
         Text('我的')
           .fontSize(26).fontWeight(FontWeight.Bold).fontColor('#17324D').width('100%')
         Column({ space: 10 }) {
-          Text(this.user.student?.name ?? this.user.username)
+          Text(this.user.displayName ?? this.user.student?.name ?? this.user.teacher?.name ?? this.user.username)
             .fontSize(23).fontWeight(FontWeight.Bold).fontColor('#17324D').width('100%')
-          Text(this.user.role === 'STUDENT' ? '学生账号' : '管理员账号')
+          Text(this.user.roleLabel ?? (this.user.role === 'STUDENT' ? '学生' : this.user.role === 'TEACHER' ? '教师' : '管理员'))
             .fontSize(13).fontColor('#176B87').width('100%')
         }
         .width('100%').padding(20).backgroundColor('#E4F2F5').borderRadius(18)
         Column() {
           this.detail('账号', this.user.username)
-          this.detail('学号', this.user.student?.studentNo ?? '—')
-          this.detail('班级', this.user.student?.className ?? '—')
-          this.detail('年级', `${this.user.student?.grade ?? '—'}`)
-          this.detail('学籍状态', this.user.student?.status ?? '—')
+          if (this.user.student !== null) {
+            this.detail('学号', this.user.student?.studentNo ?? '—')
+            this.detail('班级', this.user.student?.classGroupName ?? this.user.student?.className ?? '—')
+            this.detail('年级', `${this.user.student?.grade ?? '—'}`)
+            this.detail('学籍状态', this.user.student?.status ?? '—')
+          } else if (this.user.teacher !== null) {
+            this.detail('工号', this.user.teacher?.employeeNo ?? '—')
+            this.detail('部门', this.user.teacher?.departmentName ?? '—')
+            this.detail('教师类型', this.user.teacher?.teacherType ?? '—')
+            this.detail('职称', this.user.teacher?.title ?? '—')
+          } else {
+            this.detail('角色', this.user.roleLabel ?? this.user.role)
+            this.detail('账号状态', this.user.enabled === false ? '已停用' : '正常')
+          }
         }
         .width('100%').padding({ left: 18, right: 18 }).backgroundColor(Color.White).borderRadius(18)
         .shadow({ radius: 12, color: '#12000000', offsetY: 4 })

@@ -68,8 +68,9 @@ struct Index {
       const session = await SessionStore.load(this.getAbilityContext());
       if (session) {
         ApiClient.setToken(session.token);
-        // main 分支当前未提供 /auth/me，先使用登录时持久化的用户信息恢复会话。
-        this.currentUser = session.user;
+        const currentUser = await ApiClient.getCurrentUser();
+        this.currentUser = currentUser;
+        await SessionStore.save(this.getAbilityContext(), session.token, currentUser);
         this.loggedIn = true;
       }
     } catch (_) {
@@ -89,13 +90,15 @@ struct Index {
     try {
       const request: LoginRequest = { username: this.loginUsername.trim(), password: this.loginPassword };
       const result = await ApiClient.login(request);
-      await SessionStore.save(this.getAbilityContext(), result.token, result.user);
-      this.currentUser = result.user;
+      const currentUser = await ApiClient.getCurrentUser();
+      await SessionStore.save(this.getAbilityContext(), result.token, currentUser);
+      this.currentUser = currentUser;
       this.selectedTab = 0;
       this.loggedIn = true;
       this.loginPassword = '';
       this.showMessage('登录成功');
     } catch (error) {
+      ApiClient.clearToken();
       this.showMessage(this.errorMessage(error as Object));
     } finally {
       this.loading = false;

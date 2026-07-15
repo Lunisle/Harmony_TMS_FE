@@ -7,6 +7,7 @@ import {
   RegisterData,
   RegisterRequest,
   UserInfo,
+  CurrentUserData,
   StudentListItem,
   StudentDetail,
   StudentPage,
@@ -124,13 +125,26 @@ export class ApiClient {
   }
 
   static async getCurrentUser(): Promise<UserInfo> {
-    const user = await ApiClient.request<UserInfo>(
+    const data = await ApiClient.request<CurrentUserData>(
       '/auth/me',
       http.RequestMethod.GET,
       undefined,
       true
     );
-    return ApiClient.normalizeUser(user);
+    return {
+      id: data.user.id,
+      username: data.user.username,
+      name: data.user.name,
+      displayName: data.user.displayName ?? data.user.name,
+      role: data.identity.roleCode.toUpperCase(),
+      roleLabel: data.identity.roleLabel,
+      isAdministrator: data.identity.isAdministrator,
+      student: data.studentProfile,
+      teacher: data.teacherProfile,
+      studentId: data.studentProfile?.id ?? null,
+      teacherId: data.teacherProfile?.id ?? null,
+      enabled: data.user.enabled
+    };
   }
 
   static async getStudents(page: number = 1, pageSize: number = 20, keyword: string = '', status: string = '', enabled?: boolean, grade?: number, departmentId?: number, majorId?: number, classGroupId?: number, activated?: boolean): Promise<StudentPage> {
