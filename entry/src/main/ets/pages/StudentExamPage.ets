@@ -52,11 +52,18 @@ export struct StudentExamPage {
 
   private showToast(message: string): void { try { this.getUIContext().getPromptAction().showToast({ message, duration: 2200 }); } catch (_) {} }
 
+  private formatTime(value: string): string {
+    const matched = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (matched === null) return value;
+    return `${matched[1]}年${matched[2]}月${matched[3]}日${matched[4]}时${matched[5]}分`;
+  }
+
   @Builder
   private examRow(item: ExamListItem) {
     Column({ space: 7 }) {
       Row() { Column({ space: 4 }) { Text(item.courseName ?? `课程 ${item.courseId}`).fontSize(16).fontWeight(FontWeight.Bold).fontColor('#17324D'); Text(`${item.classGroupName ?? '本班'} · ${item.classroomRoomNo ?? '待定教室'}`).fontSize(12).fontColor('#718096') }.layoutWeight(1).alignItems(HorizontalAlign.Start); Text('考试').fontSize(11).fontColor('#176B87').backgroundColor('#E4F2F5').padding({ left: 8, right: 8, top: 4, bottom: 4 }).borderRadius(9) }
-      Text(`${item.startTime} 至 ${item.endTime}`).fontSize(13).fontColor('#516B80').width('100%')
+      Text(`开始：${this.formatTime(item.startTime)}`).fontSize(13).fontColor('#516B80').width('100%')
+      Text(`结束：${this.formatTime(item.endTime)}`).fontSize(13).fontColor('#516B80').width('100%')
       Text(`监考教师：${item.invigilatorName ?? '待安排'}`).fontSize(12).fontColor('#8999A4').width('100%')
       Button('查看详情').width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => { void this.openDetail(item); })
     }.width('100%').padding(15).backgroundColor(Color.White).borderRadius(15).margin({ bottom: 10 })
@@ -72,7 +79,8 @@ export struct StudentExamPage {
           Text(`课程：${this.selected.courseName ?? this.selected.courseId}`).fontSize(15).fontColor('#17324D').width('100%')
           Text(`班级：${this.selected.classGroupName ?? '本班'}`).fontSize(14).fontColor('#516B80').width('100%')
           Text(`考场：${this.selected.classroomRoomNo ?? '待定'}`).fontSize(14).fontColor('#516B80').width('100%')
-          Text(`时间：${this.selected.startTime} 至 ${this.selected.endTime}`).fontSize(14).fontColor('#516B80').width('100%')
+          Text(`开始时间：${this.formatTime(this.selected.startTime)}`).fontSize(14).fontColor('#516B80').width('100%')
+          Text(`结束时间：${this.formatTime(this.selected.endTime)}`).fontSize(14).fontColor('#516B80').width('100%')
           Text(`监考教师：${this.selected.invigilatorName ?? '待安排'}`).fontSize(14).fontColor('#516B80').width('100%')
           Button('关闭').width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.detailVisible = false)
         }.width('86%').padding(20).backgroundColor(Color.White).borderRadius(20)

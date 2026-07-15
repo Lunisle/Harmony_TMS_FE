@@ -140,6 +140,12 @@ export struct ClassroomRequestPage {
     return '#EEF1F3';
   }
 
+  private formatTime(value: string): string {
+    const matched = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    if (matched === null) return value;
+    return `${matched[1]}年${matched[2]}月${matched[3]}日${matched[4]}时${matched[5]}分`;
+  }
+
   private openApplication(item: RequestClassroomPreview): void {
     this.selectedClassroom = item;
     this.editingRequestId = 0;
@@ -288,7 +294,7 @@ export struct ClassroomRequestPage {
       }
       Text(item.classroomLocation).fontSize(12).fontColor('#718096').width('100%')
       Row() {
-        Text(`${item.startTime} — ${item.endTime.substring(11)}`).fontSize(13).fontColor('#31566D').layoutWeight(1)
+        Text(`${this.formatTime(item.startTime)} — ${this.formatTime(item.endTime)}`).fontSize(13).fontColor('#31566D').layoutWeight(1)
         Text('查看详情 ›').fontSize(12).fontColor('#176B87')
       }.width('100%')
     }.width('100%').padding(16).backgroundColor(Color.White).borderRadius(15).margin({ bottom: 10 })
@@ -390,8 +396,8 @@ export struct ClassroomRequestPage {
           }
           Row() { Text('教室').width(76).fontColor('#718096'); Text(this.selectedRequest.classroomName).fontColor('#17324D').layoutWeight(1) }
           Row() { Text('位置').width(76).fontColor('#718096'); Text(this.selectedRequest.classroomLocation).fontColor('#17324D').layoutWeight(1) }
-          Row() { Text('开始时间').width(76).fontColor('#718096'); Text(this.selectedRequest.startTime).fontColor('#17324D').layoutWeight(1) }
-          Row() { Text('结束时间').width(76).fontColor('#718096'); Text(this.selectedRequest.endTime).fontColor('#17324D').layoutWeight(1) }
+          Row() { Text('开始时间').width(76).fontColor('#718096'); Text(this.formatTime(this.selectedRequest.startTime)).fontColor('#17324D').layoutWeight(1) }
+          Row() { Text('结束时间').width(76).fontColor('#718096'); Text(this.formatTime(this.selectedRequest.endTime)).fontColor('#17324D').layoutWeight(1) }
           Row() { Text('使用人数').width(76).fontColor('#718096'); Text(`${this.selectedRequest.participantCount} 人`).fontColor('#17324D').layoutWeight(1) }
           Column({ space: 5 }) {
             Text('使用用途').fontSize(13).fontColor('#718096').width('100%')
@@ -415,7 +421,7 @@ export struct ClassroomRequestPage {
         Column().width('100%').height('100%').backgroundColor('#66000000')
         Column({ space: 14 }) {
           Text('确认取消申请？').fontSize(20).fontWeight(FontWeight.Bold).fontColor('#17324D').width('100%')
-          Text(`将取消 ${this.selectedRequest.classroomName} 在 ${this.selectedRequest.startTime} 的使用申请。`)
+          Text(`将取消 ${this.selectedRequest.classroomName} 在 ${this.formatTime(this.selectedRequest.startTime)} 的使用申请。`)
             .fontSize(14).fontColor('#516B80').width('100%')
           Row({ space: 10 }) {
             Button('返回').layoutWeight(1).backgroundColor('#E8EFF2').fontColor('#516B80').onClick(() => this.cancelVisible = false)
