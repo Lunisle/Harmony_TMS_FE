@@ -361,6 +361,7 @@ export interface StudentOptionMajor {
 
 export interface StudentOptionClassGroup {
   id: number;
+  code?: string;
   name: string;
   grade: number;
   majorId: number;

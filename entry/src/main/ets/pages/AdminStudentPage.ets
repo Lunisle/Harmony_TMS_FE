@@ -35,6 +35,8 @@ export struct AdminStudentPage {
   @State formName: string = '';
   @State formClassGroupId: number = 0;
   @State formGrade: number = 0;
+  @State parsedGrade: number = 0;
+  @State parsedClassCode: string = '';
   @State formStatus: string = 'ENROLLED';
   @State formPhone: string = '';
 
@@ -50,6 +52,7 @@ export struct AdminStudentPage {
   private async loadOptions(): Promise<void> {
     try {
       this.options = await ApiClient.getStudentOptions();
+      this.options.classGroups = await ApiClient.getClassGroups();
     } catch (_) {
       this.options = {
         departments: [], majors: [], classGroups: [], grades: [],
@@ -144,7 +147,7 @@ export struct AdminStudentPage {
   private classGroupName(id: number): string {
     if (id === 0) return '全部班级';
     const item = this.options.classGroups.find((option: StudentOptionClassGroup) => option.id === id);
-    return item ? item.name : `班级 ${id}`;
+    return item ? `${item.code ? `${item.code} · ` : ''}${item.name}` : `班级 ${id}`;
   }
 
   private availableMajorIds(): number[] {
@@ -211,6 +214,8 @@ export struct AdminStudentPage {
     this.formName = '';
     this.formClassGroupId = 0;
     this.formGrade = this.options.grades.length > 0 ? this.options.grades[0] : new Date().getFullYear();
+    this.parsedGrade = 0;
+    this.parsedClassCode = '';
     this.formStatus = 'ENROLLED';
     this.formPhone = '';
     this.formVisible = true;
@@ -223,6 +228,8 @@ export struct AdminStudentPage {
     this.formName = this.selectedStudent.name;
     this.formClassGroupId = this.selectedStudent.classGroupId ?? 0;
     this.formGrade = this.selectedStudent.grade ?? 0;
+    this.parsedGrade = 0;
+    this.parsedClassCode = '';
     this.formStatus = this.selectedStudent.status;
     this.formPhone = this.selectedStudent.phone ?? '';
     this.selectedStudent = null;
@@ -230,14 +237,33 @@ export struct AdminStudentPage {
   }
 
   private cycleFormClass(): void {
-    const ids = this.options.classGroups.map((option: StudentOptionClassGroup) => option.id);
+    const ids = this.options.classGroups
+      .filter((option: StudentOptionClassGroup) => this.formGrade <= 0 || option.grade === this.formGrade)
+      .map((option: StudentOptionClassGroup) => option.id);
     this.formClassGroupId = this.cycleNumber(this.formClassGroupId, ids);
     const selected = this.options.classGroups.find((option: StudentOptionClassGroup) => option.id === this.formClassGroupId);
     if (selected) this.formGrade = selected.grade;
   }
 
+  private cycleFormGrade(): void {
+    this.formGrade = this.cycleNumber(this.formGrade, this.options.grades);
+    this.formClassGroupId = 0;
+  }
+
   private validStudentNo(studentNo: string): boolean {
     return /^[0-9]{12}$/.test(studentNo);
+  }
+
+  private parseStudentNo(value: string): void {
+    this.formStudentNo = value;
+    this.parsedGrade = 0;
+    this.parsedClassCode = '';
+    if (!this.validStudentNo(value)) return;
+    this.parsedGrade = Number(value.substring(0, 4));
+    this.parsedClassCode = value.substring(8, 10);
+    this.formGrade = this.parsedGrade;
+    const matched = this.options.classGroups.find((option: StudentOptionClassGroup) => option.grade === this.parsedGrade && option.code === this.parsedClassCode);
+    if (matched) this.formClassGroupId = matched.id;
   }
 
   private validPhone(phone: string): boolean {
@@ -259,6 +285,17 @@ export struct AdminStudentPage {
     if (this.formClassGroupId <= 0 || this.formGrade <= 0) {
       this.showToast('请选择学生班级和年级');
       return;
+    }
+    if (this.parsedGrade > 0 && this.formGrade !== this.parsedGrade) {
+      this.showToast('年级与学号解析结果不一致');
+      return;
+    }
+    if (this.parsedClassCode.length > 0) {
+      const selectedGroup = this.options.classGroups.find((option: StudentOptionClassGroup) => option.id === this.formClassGroupId);
+      if (!selectedGroup || selectedGroup.code !== this.parsedClassCode || selectedGroup.grade !== this.parsedGrade) {
+        this.showToast('班级与学号解析结果不一致');
+        return;
+      }
     }
     if (!this.validPhone(phone)) {
       this.showToast('请输入正确的 11 位手机号');
@@ -426,12 +463,13 @@ export struct AdminStudentPage {
               Text('×').fontSize(26).fontColor('#718096').onClick(() => this.formVisible = false)
             }
             TextInput({ placeholder: '12 位学生学号（必填）', text: this.formStudentNo }).type(InputType.Number).maxLength(12)
-              .height(46).backgroundColor('#F1F6F8').borderRadius(10).onChange((value: string) => this.formStudentNo = value)
+              .height(46).backgroundColor('#F1F6F8').borderRadius(10).onChange((value: string) => this.parseStudentNo(value))
             TextInput({ placeholder: '学生姓名（必填）', text: this.formName }).height(46).backgroundColor('#F1F6F8').borderRadius(10)
               .onChange((value: string) => this.formName = value)
             Button(this.formClassGroupId > 0 ? this.classGroupName(this.formClassGroupId) : '选择班级（必填）').width('100%')
               .backgroundColor('#EAF5F7').fontColor('#31566D').onClick(() => this.cycleFormClass())
-            Text(`年级：${this.formGrade > 0 ? this.formGrade : '随班级自动填写'}`).fontSize(13).fontColor('#718096').width('100%')
+            Button(`年级：${this.formGrade > 0 ? this.formGrade : '随学号自动填写'}`).width('100%').height(46)
+              .backgroundColor('#EAF5F7').fontColor('#31566D').onClick(() => this.cycleFormGrade())
             Button(this.statusText(this.formStatus)).width('100%').backgroundColor('#EAF5F7').fontColor('#31566D')
               .onClick(() => this.formStatus = this.cycleRequiredText(this.formStatus, ['ENROLLED', 'SUSPENDED', 'GRADUATED', 'WITHDRAWN']))
             TextInput({ placeholder: '联系电话（可选）', text: this.formPhone }).type(InputType.PhoneNumber).maxLength(11)
