@@ -114,6 +114,25 @@ export struct ScheduleChangePage {
     catch (error) { this.showToast(error instanceof Error ? error.message : '删除失败'); }
   }
 
+  private selectOptions(placeholder: string, labels: string[]): SelectOption[] {
+    const options: SelectOption[] = [{ value: placeholder }];
+    labels.forEach((label: string) => options.push({ value: label }));
+    return options;
+  }
+
+  private selectedIndex(value: string, ids: number[]): number {
+    const index = ids.indexOf(Number(value));
+    return index < 0 ? 0 : index + 1;
+  }
+
+  @Builder
+  private requiredLabel(label: string) {
+    Row({ space: 3 }) {
+      Text('*').fontSize(15).fontColor('#D94B4B').fontWeight(FontWeight.Bold)
+      Text(label).fontSize(13).fontColor('#516B80')
+    }.width('100%').justifyContent(FlexAlign.Start)
+  }
+
   @Builder
   private row(item: ScheduleChangeListItem) {
     Column({ space: 7 }) {
@@ -128,7 +147,42 @@ export struct ScheduleChangePage {
   @Builder
   private formDialog() {
     if (this.formVisible) {
-      Stack() { Column().width('100%').height('100%').backgroundColor('#66000000').onClick(() => this.formVisible = false); Column({ space: 12 }) { Text(this.editingId > 0 ? '编辑调课申请' : '新建调课申请').fontSize(20).fontWeight(FontWeight.Bold).fontColor('#17324D').width('100%'); Button(this.teacherLabel()).width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.teacherId = this.cycleId(this.teacherId, this.teachers.map((v: TeacherListItem) => v.id))); Button(this.courseLabel()).width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.courseId = this.cycleId(this.courseId, this.courses.map((v: CourseSummary) => v.id))); Button(this.classGroupLabel()).width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.classGroupId = this.cycleId(this.classGroupId, this.classGroups.map((v: StudentOptionClassGroup) => v.id))); TextInput({ placeholder: '调课课时', text: this.hours }).type(InputType.Number).onChange((v: string) => this.hours = v); TextInput({ placeholder: '申请原因', text: this.reason }).height(80).onChange((v: string) => this.reason = v); Row({ space: 10 }) { Button('取消').layoutWeight(1).onClick(() => this.formVisible = false); Button(this.editingId > 0 ? '保存' : '提交').layoutWeight(1).backgroundColor('#176B87').fontColor(Color.White).onClick(() => { void this.save(); }) } }.width('86%').padding(20).backgroundColor(Color.White).borderRadius(20) }.width('100%').height('100%')
+      Stack() {
+        Column().width('100%').height('100%').backgroundColor('#66000000').onClick(() => this.formVisible = false)
+        Scroll() {
+          Column({ space: 12 }) {
+            Row() {
+              Text(this.editingId > 0 ? '编辑调课申请' : '新建调课申请').fontSize(20).fontWeight(FontWeight.Bold).fontColor('#17324D').layoutWeight(1)
+              Text('×').fontSize(26).fontColor('#718096').onClick(() => this.formVisible = false)
+            }.width('100%')
+            this.requiredLabel('授课教师')
+            if (this.user.role === 'TEACHER') {
+              Text(this.teacherLabel()).width('100%').height(44).padding({ left: 14, right: 14 }).backgroundColor('#EAF5F7').borderRadius(10).fontColor('#31566D')
+                .textAlign(TextAlign.Start)
+            } else {
+              Select(this.selectOptions('请选择授课教师', this.teachers.map((item: TeacherListItem) => item.name))).selected(this.selectedIndex(this.teacherId, this.teachers.map((item: TeacherListItem) => item.id))).width('100%').height(44)
+                .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.teacherId = index > 0 ? `${this.teachers[index - 1].id}` : '')
+            }
+            this.requiredLabel('课程')
+            Select(this.selectOptions('请选择课程', this.courses.map((item: CourseSummary) => `${item.code} · ${item.name}`))).selected(this.selectedIndex(this.courseId, this.courses.map((item: CourseSummary) => item.id))).width('100%').height(44)
+              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.courseId = index > 0 ? `${this.courses[index - 1].id}` : '')
+            this.requiredLabel('班级组')
+            Select(this.selectOptions('请选择班级组', this.classGroups.map((item: StudentOptionClassGroup) => item.name))).selected(this.selectedIndex(this.classGroupId, this.classGroups.map((item: StudentOptionClassGroup) => item.id))).width('100%').height(44)
+              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.classGroupId = index > 0 ? `${this.classGroups[index - 1].id}` : '')
+            this.requiredLabel('调课课时')
+            TextInput({ placeholder: '请输入调课课时，例如 1', text: this.hours }).type(InputType.Number).height(44).backgroundColor('#F1F6F8').borderRadius(10)
+              .onChange((value: string) => this.hours = value)
+            this.requiredLabel('申请原因')
+            TextArea({ placeholder: '请说明调课原因', text: this.reason }).height(88).backgroundColor('#F1F6F8').borderRadius(10)
+              .onChange((value: string) => this.reason = value)
+            Text('带 * 的项目为必填；提交后由有审批权限的管理员处理。').fontSize(12).fontColor('#8999A4').width('100%')
+            Row({ space: 10 }) {
+              Button('取消').layoutWeight(1).backgroundColor('#E8EFF2').fontColor('#516B80').onClick(() => this.formVisible = false)
+              Button(this.editingId > 0 ? '保存' : '提交').layoutWeight(1).backgroundColor('#176B87').fontColor(Color.White).onClick(() => { void this.save(); })
+            }
+          }.width('100%').padding(20).backgroundColor(Color.White).borderRadius(20)
+        }.width('88%').height('84%')
+      }.width('100%').height('100%')
     }
   }
 
