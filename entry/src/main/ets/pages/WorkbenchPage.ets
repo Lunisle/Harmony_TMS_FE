@@ -66,6 +66,8 @@ export struct WorkbenchPage {
         this.page = 1;
       } else if (title === '调课申请') {
         this.page = 2;
+      } else if (title === '考试查询') {
+        this.page = 3;
       } else {
         this.showMessage(active ? `${title}功能即将接入` : `${title}开发中`);
       }

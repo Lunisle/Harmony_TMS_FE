@@ -359,8 +359,12 @@ export class ApiClient {
     return ApiClient.request<DeleteResult>(`/schedule-changes/${id}`, http.RequestMethod.DELETE, undefined, true);
   }
 
-  static async getExams(page: number = 1, pageSize: number = 10, keyword: string = ''): Promise<ExamPage> {
-    const query = `page=${page}&pageSize=${pageSize}${keyword.trim().length > 0 ? `&keyword=${encodeURIComponent(keyword.trim())}` : ''}`;
+  static async getExams(page: number = 1, pageSize: number = 10, keyword: string = '', semesterId?: number, classGroupId?: number): Promise<ExamPage> {
+    const params: string[] = [`page=${page}`, `pageSize=${pageSize}`];
+    if (keyword.trim().length > 0) params.push(`keyword=${encodeURIComponent(keyword.trim())}`);
+    if (semesterId !== undefined && semesterId > 0) params.push(`semesterId=${semesterId}`);
+    if (classGroupId !== undefined && classGroupId > 0) params.push(`classGroupId=${classGroupId}`);
+    const query = params.join('&');
     const result = await ApiClient.request<ExamListResponse>(`/exams?${query}`, http.RequestMethod.GET, undefined, true);
     return { items: result.list ?? [], total: result.total ?? 0, page: result.page ?? page, pageSize: result.pageSize ?? pageSize, totalPages: Math.max(1, Math.ceil((result.total ?? 0) / (result.pageSize ?? pageSize))) };
   }

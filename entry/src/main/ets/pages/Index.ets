@@ -15,6 +15,7 @@ import { AdminCoursePage } from './AdminCoursePage';
 import { AdminClassroomRequestPage } from './AdminClassroomRequestPage';
 import { ScheduleChangePage } from './ScheduleChangePage';
 import { ExamPage } from './ExamPage';
+import { StudentExamPage } from './StudentExamPage';
 import { ProfilePage } from './ProfilePage';
 import { AnnouncementPage } from './AnnouncementPage';
 
@@ -243,6 +244,8 @@ struct Index {
             ClassroomRequestPage({ user: this.currentUser, page: $workbenchPage })
           } else if (this.workbenchPage === 2) {
             ScheduleChangePage({ user: this.currentUser, page: $workbenchPage })
+          } else if (this.workbenchPage === 3) {
+            StudentExamPage({ user: this.currentUser, page: $workbenchPage })
           } else {
             WorkbenchPage({ user: this.currentUser, page: $workbenchPage })
           }
