@@ -108,6 +108,20 @@ export struct AdminStudentPage {
     return index < 0 || index >= values.length - 1 ? values[0] : values[index + 1];
   }
 
+  private statusSelectIndex(): number {
+    if (this.statusFilter === 'ENROLLED') return 1;
+    if (this.statusFilter === 'SUSPENDED') return 2;
+    if (this.statusFilter === 'GRADUATED') return 3;
+    if (this.statusFilter === 'WITHDRAWN') return 4;
+    return 0;
+  }
+
+  private activationSelectIndex(): number {
+    if (this.activationFilter === 'ACTIVATED') return 1;
+    if (this.activationFilter === 'NOT_ACTIVATED') return 2;
+    return 0;
+  }
+
   private cycleNumber(current: number, values: number[]): number {
     if (values.length === 0) return 0;
     if (current === 0) return values[0];
@@ -367,7 +381,7 @@ export struct AdminStudentPage {
           Text('一级筛选 · 学号结构 4-2-2-2-2').fontSize(14).fontWeight(FontWeight.Bold).fontColor('#31566D').width('100%')
           Row({ space: 8 }) {
             TextInput({ placeholder: '年级', text: this.gradeFilter > 0 ? `${this.gradeFilter}` : '' })
-              .width('34%').height(40).fontSize(16).backgroundColor('#EAF5F7').borderRadius(9).maxLength(4)
+              .width('34%').height(40).fontSize(16).textAlign(TextAlign.Center).backgroundColor('#EAF5F7').borderRadius(9).maxLength(4)
               .onChange((value: string) => { this.gradeFilter = value.length > 0 ? Number(value) : 0; this.classFilter = 0; })
             TextInput({ placeholder: '学院', text: this.departmentFilter > 0 ? `${this.departmentFilter}` : '' })
               .width('18%').height(40).fontSize(14).backgroundColor('#EAF5F7').borderRadius(9).maxLength(2)
@@ -381,12 +395,18 @@ export struct AdminStudentPage {
           }
           Text('二级筛选').fontSize(14).fontWeight(FontWeight.Bold).fontColor('#516B80').width('100%')
           Row({ space: 8 }) {
-            Button(this.statusFilter.length === 0 ? '学籍状态' : this.statusText(this.statusFilter)).layoutWeight(1)
-              .backgroundColor('#EAF5F7').fontColor('#31566D')
-              .onClick(() => this.statusFilter = this.cycleText(this.statusFilter, this.options.statuses))
-            Button(this.activationFilter.length === 0 ? '激活状态' : this.activationText(this.activationFilter)).layoutWeight(1)
-              .backgroundColor('#EAF5F7').fontColor('#31566D')
-              .onClick(() => this.activationFilter = this.cycleText(this.activationFilter, ['ACTIVATED', 'NOT_ACTIVATED']))
+            Select([
+              { value: '任意' }, { value: '在读' }, { value: '休学' }, { value: '毕业' }, { value: '退学' }
+            ]).selected(this.statusSelectIndex()).layoutWeight(1).height(40).backgroundColor('#EAF5F7').fontColor('#31566D')
+              .onSelect((index: number) => {
+                this.statusFilter = index === 1 ? 'ENROLLED' : index === 2 ? 'SUSPENDED' : index === 3 ? 'GRADUATED' : index === 4 ? 'WITHDRAWN' : '';
+              })
+            Select([
+              { value: '任意' }, { value: '已激活' }, { value: '未激活' }
+            ]).selected(this.activationSelectIndex()).layoutWeight(1).height(40).backgroundColor('#EAF5F7').fontColor('#31566D')
+              .onSelect((index: number) => {
+                this.activationFilter = index === 1 ? 'ACTIVATED' : index === 2 ? 'NOT_ACTIVATED' : '';
+              })
             Button('确认筛选').layoutWeight(1).backgroundColor('#197C93').fontColor(Color.White).onClick(() => this.applyFilter())
           }
         }.width('92%').padding(18).backgroundColor('#F7FCFD').borderRadius(20)
