@@ -101,6 +101,23 @@ export struct AdminClassroomPage {
     return index < 0 || index >= values.length - 1 ? values[0] : values[index + 1];
   }
 
+  private textSelectIndex(value: string, values: string[]): number {
+    const index = values.indexOf(value);
+    return index >= 0 ? index + 1 : 0;
+  }
+
+  private textSelectOptions(placeholder: string, values: string[]): SelectOption[] {
+    const result: SelectOption[] = [{ value: placeholder }];
+    values.forEach((value: string) => result.push({ value }));
+    return result;
+  }
+
+  private statusSelectOptions(placeholder: string): SelectOption[] {
+    const result: SelectOption[] = [{ value: placeholder }];
+    this.statuses.forEach((status: string) => result.push({ value: this.statusText(status) }));
+    return result;
+  }
+
   private statusText(status: string): string {
     if (status === 'AVAILABLE') return '可用';
     if (status === 'OCCUPIED') return '使用中';
@@ -118,6 +135,19 @@ export struct AdminClassroomPage {
     if (status === 'AVAILABLE') return '#E2F3EE';
     if (status === 'OCCUPIED') return '#FBF0DC';
     return '#F7E5E5';
+  }
+
+  @Builder
+  private requiredLabel(label: string) {
+    Row({ space: 3 }) {
+      Text('*').fontSize(15).fontColor('#D94B4B').fontWeight(FontWeight.Bold)
+      Text(label).fontSize(13).fontColor('#516B80')
+    }.width('100%').justifyContent(FlexAlign.Start)
+  }
+
+  @Builder
+  private optionalLabel(label: string) {
+    Text(label).fontSize(13).fontColor('#718096').width('100%').textAlign(TextAlign.Start)
   }
 
   private clearFilters(): void {
@@ -277,13 +307,16 @@ export struct AdminClassroomPage {
             Text('筛选教室').fontSize(20).fontWeight(FontWeight.Bold).fontColor('#17324D').layoutWeight(1)
             Text('×').fontSize(26).fontColor('#718096').onClick(() => this.filterVisible = false)
           }
-          Text('点击选项可依次切换').fontSize(13).fontColor('#718096').width('100%')
-          Button(this.campusFilter || '全部校区').width('100%').backgroundColor('#EAF5F7').fontColor('#31566D')
-            .onClick(() => this.campusFilter = this.cycleText(this.campusFilter, this.campuses))
-          Button(this.typeFilter || '全部教室类型').width('100%').backgroundColor('#EAF5F7').fontColor('#31566D')
-            .onClick(() => this.typeFilter = this.cycleText(this.typeFilter, this.classroomTypes))
-          Button(this.statusFilter.length > 0 ? this.statusText(this.statusFilter) : '全部状态').width('100%')
-            .backgroundColor('#EAF5F7').fontColor('#31566D').onClick(() => this.statusFilter = this.cycleText(this.statusFilter, this.statuses))
+          Text('筛选条件（均可选择“任意”）').fontSize(13).fontColor('#718096').width('100%')
+          this.optionalLabel('校区')
+          Select(this.textSelectOptions('任意校区', this.campuses)).selected(this.textSelectIndex(this.campusFilter, this.campuses)).width('100%').height(44)
+            .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.campusFilter = index > 0 ? this.campuses[index - 1] : '')
+          this.optionalLabel('教室类型')
+          Select(this.textSelectOptions('任意教室类型', this.classroomTypes)).selected(this.textSelectIndex(this.typeFilter, this.classroomTypes)).width('100%').height(44)
+            .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.typeFilter = index > 0 ? this.classroomTypes[index - 1] : '')
+          this.optionalLabel('可用状态')
+          Select(this.statusSelectOptions('任意状态')).selected(this.textSelectIndex(this.statusFilter, this.statuses)).width('100%').height(44)
+            .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.statusFilter = index > 0 ? this.statuses[index - 1] : '')
           Row({ space: 10 }) {
             Button('清空').layoutWeight(1).backgroundColor('#E8EFF2').fontColor('#516B80').onClick(() => this.clearFilters())
             Button('应用筛选').layoutWeight(1).backgroundColor('#197C93').fontColor(Color.White).onClick(() => {
@@ -308,21 +341,36 @@ export struct AdminClassroomPage {
               Text(this.editingId > 0 ? '编辑教室' : '新增教室').fontSize(20).fontWeight(FontWeight.Bold).fontColor('#17324D').layoutWeight(1)
               Text('×').fontSize(26).fontColor('#718096').onClick(() => this.formVisible = false)
             }
-            Button(this.formCampus || '选择校区').width('100%').backgroundColor('#EAF5F7').fontColor('#31566D')
-              .onClick(() => this.formCampus = this.cycleRequiredText(this.formCampus, this.campuses))
-            TextInput({ placeholder: '楼栋（必填）', text: this.formBuilding }).height(46).backgroundColor('#F1F6F8').borderRadius(10)
+            this.requiredLabel('校区')
+            Select(this.textSelectOptions('选择校区', this.campuses)).selected(this.textSelectIndex(this.formCampus, this.campuses)).width('100%').height(46)
+              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.formCampus = index > 0 ? this.campuses[index - 1] : '')
+            this.requiredLabel('楼栋')
+            TextInput({ placeholder: '请输入楼栋', text: this.formBuilding }).height(46).backgroundColor('#F1F6F8').borderRadius(10)
               .onChange((value: string) => this.formBuilding = value)
-            TextInput({ placeholder: '教室编号（必填）', text: this.formRoomNo }).height(46).backgroundColor('#F1F6F8').borderRadius(10)
+            this.requiredLabel('教室编号')
+            TextInput({ placeholder: '请输入教室编号', text: this.formRoomNo }).height(46).backgroundColor('#F1F6F8').borderRadius(10)
               .onChange((value: string) => this.formRoomNo = value)
-            Button(this.formType || '选择教室类型').width('100%').backgroundColor('#EAF5F7').fontColor('#31566D')
-              .onClick(() => this.formType = this.cycleRequiredText(this.formType, this.classroomTypes))
-            TextInput({ placeholder: '容量（人数）', text: this.formCapacity }).type(InputType.Number).height(46).backgroundColor('#F1F6F8').borderRadius(10)
-              .onChange((value: string) => this.formCapacity = value)
-            TextInput({ placeholder: '面积（平方米）', text: this.formArea }).type(InputType.Number).height(46).backgroundColor('#F1F6F8').borderRadius(10)
-              .onChange((value: string) => this.formArea = value)
-            Button(this.statusText(this.formStatus)).width('100%').backgroundColor(this.statusBackground(this.formStatus)).fontColor(this.statusColor(this.formStatus))
-              .onClick(() => this.formStatus = this.cycleRequiredText(this.formStatus, this.statuses))
-            Button('保存静态数据').width('100%').height(48).backgroundColor('#197C93').fontColor(Color.White)
+            this.optionalLabel('教室类型（可选）')
+            Select(this.textSelectOptions('选择教室类型（可选）', this.classroomTypes)).selected(this.textSelectIndex(this.formType, this.classroomTypes)).width('100%').height(46)
+              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.formType = index > 0 ? this.classroomTypes[index - 1] : '')
+            Row({ space: 8 }) {
+              Column({ space: 6 }) {
+                this.requiredLabel('容量')
+                TextInput({ placeholder: '人数', text: this.formCapacity }).type(InputType.Number).height(46).backgroundColor('#F1F6F8').borderRadius(10)
+                  .onChange((value: string) => this.formCapacity = value)
+              }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+              Column({ space: 6 }) {
+                this.optionalLabel('面积（㎡）')
+                TextInput({ placeholder: '可选', text: this.formArea }).type(InputType.Number).height(46).backgroundColor('#F1F6F8').borderRadius(10)
+                  .onChange((value: string) => this.formArea = value)
+              }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+              Column({ space: 6 }) {
+                this.requiredLabel('可用状态')
+                Select(this.statusSelectOptions('选择状态')).selected(this.textSelectIndex(this.formStatus, this.statuses)).width('100%').height(46)
+                  .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.formStatus = index > 0 ? this.statuses[index - 1] : '')
+              }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+            }.width('100%').alignItems(VerticalAlign.Top)
+            Button('保存').width('100%').height(48).backgroundColor('#197C93').fontColor(Color.White)
               .onClick(() => this.saveClassroom())
           }.width('100%').padding(20).backgroundColor(Color.White).borderRadius(20)
         }.width('88%').height('82%')
@@ -356,11 +404,6 @@ export struct AdminClassroomPage {
           Text('教室管理').fontSize(22).fontWeight(FontWeight.Bold).fontColor('#17324D').layoutWeight(1)
           Text(`${this.total}间`).fontSize(13).fontColor('#718096')
         }.width('100%').padding({ left: 18, right: 20, top: 18, bottom: 10 })
-        Row() {
-          Text('远程数据').fontSize(12).fontColor('#176B87').backgroundColor('#DCEFF2')
-            .padding({ left: 8, right: 8, top: 4, bottom: 4 }).borderRadius(8)
-          Text(this.loading ? '正在加载教室数据…' : '已连接后端接口').fontSize(12).fontColor('#718096').margin({ left: 8 })
-        }.width('100%').padding({ left: 20, right: 20, bottom: 10 })
         Row({ space: 8 }) {
           TextInput({ placeholder: '搜索教室编号或楼栋', text: this.keyword }).layoutWeight(1).height(42).backgroundColor(Color.White).borderRadius(10)
             .onChange((value: string) => { this.keyword = value; this.currentPage = 1; this.loadClassrooms(); })
