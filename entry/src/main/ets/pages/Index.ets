@@ -239,6 +239,8 @@ struct Index {
             AdminClassroomRequestPage({ page: $adminPage })
           } else if (this.adminPage === 7) {
             ExamPage({ page: $adminPage })
+          } else if (this.adminPage === 8) {
+            ScheduleChangePage({ user: this.currentUser, page: $adminPage })
           } else {
             AdminWorkbenchPage({ user: this.currentUser, page: $adminPage })
           }

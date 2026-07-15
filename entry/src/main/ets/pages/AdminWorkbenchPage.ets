@@ -34,6 +34,7 @@ export struct AdminWorkbenchPage {
         else if (title === '课程管理') { this.page = 4; }
         else if (title === '教室申请审批') { this.page = 6; }
         else if (title === '考试安排') { this.page = 7; }
+        else if (title === '调课申请审批') { this.page = 8; }
         else { this.showMessage(`${title}入口已准备，下一步接入接口`); }
       })
   }
@@ -53,6 +54,7 @@ export struct AdminWorkbenchPage {
 
         Text('其他服务').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#29445A').width('100%').margin({ top: 10 })
         this.adminRow('审', '教室申请审批', '审批教师和学生的教室使用申请', '教务管理员', true)
+        this.adminRow('调', '调课申请审批', '审批教师提交的调课申请与驳回意见', '教务管理员', true)
         this.adminRow('考', '考试安排', '维护学期考试、考场和监考教师', '教务管理', true)
 
         Text('开发中').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#718096').width('100%').margin({ top: 10 })
