@@ -213,7 +213,7 @@ export struct AdminStudentPage {
     this.formStudentNo = '';
     this.formName = '';
     this.formClassGroupId = 0;
-    this.formGrade = this.options.grades.length > 0 ? this.options.grades[0] : new Date().getFullYear();
+    this.formGrade = 0;
     this.parsedGrade = 0;
     this.parsedClassCode = '';
     this.formStatus = 'ENROLLED';
@@ -256,12 +256,12 @@ export struct AdminStudentPage {
 
   private formGradeIndex(): number {
     const index = this.options.grades.indexOf(this.formGrade);
-    return index >= 0 ? index : 0;
+    return index >= 0 ? index + 1 : 0;
   }
 
   private formClassIndex(): number {
     const index = this.formClassGroups().findIndex((option: StudentOptionClassGroup) => option.id === this.formClassGroupId);
-    return index >= 0 ? index : 0;
+    return index >= 0 ? index + 1 : 0;
   }
 
   private formStatusIndex(): number {
@@ -272,7 +272,7 @@ export struct AdminStudentPage {
   }
 
   private gradeSelectOptions(): SelectOption[] {
-    const result: SelectOption[] = [];
+    const result: SelectOption[] = [{ value: '请选择年级' }];
     this.options.grades.forEach((grade: number) => {
       const option: SelectOption = { value: `${grade}` };
       result.push(option);
@@ -281,7 +281,7 @@ export struct AdminStudentPage {
   }
 
   private classSelectOptions(): SelectOption[] {
-    const result: SelectOption[] = [];
+    const result: SelectOption[] = [{ value: '请选择班级' }];
     this.formClassGroups().forEach((group: StudentOptionClassGroup) => {
       const option: SelectOption = { value: `${group.code ?? ''} · ${group.name}` };
       result.push(option);
@@ -297,6 +297,7 @@ export struct AdminStudentPage {
     this.formStudentNo = value;
     this.parsedGrade = 0;
     this.parsedClassCode = '';
+    this.formClassGroupId = 0;
     if (!this.validStudentNo(value)) return;
     this.parsedGrade = Number(value.substring(0, 4));
     this.parsedClassCode = value.substring(8, 10);
@@ -522,10 +523,23 @@ export struct AdminStudentPage {
               .onChange((value: string) => this.formName = value)
             this.requiredLabel('年级')
             Select(this.gradeSelectOptions()).selected(this.formGradeIndex()).width('100%').height(46)
-              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => { this.formGrade = this.options.grades[index]; this.formClassGroupId = 0; })
+              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => {
+                this.formGrade = index > 0 ? this.options.grades[index - 1] : 0;
+                this.formClassGroupId = 0;
+              })
             this.requiredLabel('班级')
             Select(this.classSelectOptions()).selected(this.formClassIndex()).width('100%').height(46)
-              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => { const selected = this.formClassGroups()[index]; if (selected) { this.formClassGroupId = selected.id; this.formGrade = selected.grade; } })
+              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => {
+                if (index === 0) {
+                  this.formClassGroupId = 0;
+                  return;
+                }
+                const selected = this.formClassGroups()[index - 1];
+                if (selected) {
+                  this.formClassGroupId = selected.id;
+                  this.formGrade = selected.grade;
+                }
+              })
             this.requiredLabel('学籍状态')
             Select([{ value: '在读' }, { value: '休学' }, { value: '毕业' }, { value: '退学' }]).selected(this.formStatusIndex()).width('100%').height(46)
               .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => { this.formStatus = index === 1 ? 'SUSPENDED' : index === 2 ? 'GRADUATED' : index === 3 ? 'WITHDRAWN' : 'ENROLLED'; })
