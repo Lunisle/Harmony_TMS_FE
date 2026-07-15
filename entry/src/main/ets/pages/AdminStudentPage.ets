@@ -250,6 +250,45 @@ export struct AdminStudentPage {
     this.formClassGroupId = 0;
   }
 
+  private formClassGroups(): StudentOptionClassGroup[] {
+    return this.options.classGroups.filter((option: StudentOptionClassGroup) => this.formGrade <= 0 || option.grade === this.formGrade);
+  }
+
+  private formGradeIndex(): number {
+    const index = this.options.grades.indexOf(this.formGrade);
+    return index >= 0 ? index : 0;
+  }
+
+  private formClassIndex(): number {
+    const index = this.formClassGroups().findIndex((option: StudentOptionClassGroup) => option.id === this.formClassGroupId);
+    return index >= 0 ? index : 0;
+  }
+
+  private formStatusIndex(): number {
+    if (this.formStatus === 'SUSPENDED') return 1;
+    if (this.formStatus === 'GRADUATED') return 2;
+    if (this.formStatus === 'WITHDRAWN') return 3;
+    return 0;
+  }
+
+  private gradeSelectOptions(): SelectOption[] {
+    const result: SelectOption[] = [];
+    this.options.grades.forEach((grade: number) => {
+      const option: SelectOption = { value: `${grade}` };
+      result.push(option);
+    });
+    return result;
+  }
+
+  private classSelectOptions(): SelectOption[] {
+    const result: SelectOption[] = [];
+    this.formClassGroups().forEach((group: StudentOptionClassGroup) => {
+      const option: SelectOption = { value: `${group.code ?? ''} · ${group.name}` };
+      result.push(option);
+    });
+    return result;
+  }
+
   private validStudentNo(studentNo: string): boolean {
     return /^[0-9]{12}$/.test(studentNo);
   }
@@ -359,6 +398,19 @@ export struct AdminStudentPage {
   }
 
   @Builder
+  private requiredLabel(label: string) {
+    Row({ space: 3 }) {
+      Text('*').fontSize(15).fontColor('#D94B4B').fontWeight(FontWeight.Bold)
+      Text(label).fontSize(13).fontColor('#516B80')
+    }.width('100%').justifyContent(FlexAlign.Start)
+  }
+
+  @Builder
+  private optionalLabel(label: string) {
+    Text(label).fontSize(13).fontColor('#718096').width('100%').textAlign(TextAlign.Start)
+  }
+
+  @Builder
   private studentRow(item: StudentListItem) {
     Row() {
       Column({ space: 3 }) {
@@ -462,17 +514,23 @@ export struct AdminStudentPage {
               Text(this.editingId > 0 ? '编辑学生' : '新增学生').fontSize(20).fontWeight(FontWeight.Bold).fontColor('#17324D').layoutWeight(1)
               Text('×').fontSize(26).fontColor('#718096').onClick(() => this.formVisible = false)
             }
-            TextInput({ placeholder: '12 位学生学号（必填）', text: this.formStudentNo }).type(InputType.Number).maxLength(12)
+            this.requiredLabel('学生学号')
+            TextInput({ placeholder: '请输入 12 位学生学号', text: this.formStudentNo }).type(InputType.Number).maxLength(12)
               .height(46).backgroundColor('#F1F6F8').borderRadius(10).onChange((value: string) => this.parseStudentNo(value))
-            TextInput({ placeholder: '学生姓名（必填）', text: this.formName }).height(46).backgroundColor('#F1F6F8').borderRadius(10)
+            this.requiredLabel('学生姓名')
+            TextInput({ placeholder: '请输入学生姓名', text: this.formName }).height(46).backgroundColor('#F1F6F8').borderRadius(10)
               .onChange((value: string) => this.formName = value)
-            Button(this.formClassGroupId > 0 ? this.classGroupName(this.formClassGroupId) : '选择班级（必填）').width('100%')
-              .backgroundColor('#EAF5F7').fontColor('#31566D').onClick(() => this.cycleFormClass())
-            Button(`年级：${this.formGrade > 0 ? this.formGrade : '随学号自动填写'}`).width('100%').height(46)
-              .backgroundColor('#EAF5F7').fontColor('#31566D').onClick(() => this.cycleFormGrade())
-            Button(this.statusText(this.formStatus)).width('100%').backgroundColor('#EAF5F7').fontColor('#31566D')
-              .onClick(() => this.formStatus = this.cycleRequiredText(this.formStatus, ['ENROLLED', 'SUSPENDED', 'GRADUATED', 'WITHDRAWN']))
-            TextInput({ placeholder: '联系电话（可选）', text: this.formPhone }).type(InputType.PhoneNumber).maxLength(11)
+            this.requiredLabel('年级')
+            Select(this.gradeSelectOptions()).selected(this.formGradeIndex()).width('100%').height(46)
+              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => { this.formGrade = this.options.grades[index]; this.formClassGroupId = 0; })
+            this.requiredLabel('班级')
+            Select(this.classSelectOptions()).selected(this.formClassIndex()).width('100%').height(46)
+              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => { const selected = this.formClassGroups()[index]; if (selected) { this.formClassGroupId = selected.id; this.formGrade = selected.grade; } })
+            this.requiredLabel('学籍状态')
+            Select([{ value: '在读' }, { value: '休学' }, { value: '毕业' }, { value: '退学' }]).selected(this.formStatusIndex()).width('100%').height(46)
+              .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => { this.formStatus = index === 1 ? 'SUSPENDED' : index === 2 ? 'GRADUATED' : index === 3 ? 'WITHDRAWN' : 'ENROLLED'; })
+            this.optionalLabel('联系电话（可选）')
+            TextInput({ placeholder: '请输入联系电话', text: this.formPhone }).type(InputType.PhoneNumber).maxLength(11)
               .height(46).backgroundColor('#F1F6F8').borderRadius(10).onChange((value: string) => this.formPhone = value)
             Button(this.saving ? '保存中…' : '保存').width('100%').height(48).backgroundColor('#197C93').fontColor(Color.White)
               .enabled(!this.saving).onClick(() => { void this.saveStudent(); })
