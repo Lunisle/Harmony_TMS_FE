@@ -270,7 +270,7 @@ export struct ExamPage {
               .backgroundColor('#EAF5F7').fontColor('#31566D').onSelect((index: number) => this.classroomId = index > 0 ? `${this.classrooms[index - 1].id}` : '')
             this.requiredLabel('开始时间')
             Row({ space: 5 }) {
-              TextInput({ placeholder: '年', text: this.startYear }).type(InputType.Number).maxLength(4).layoutWeight(2).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startYear = value)
+              TextInput({ placeholder: '年', text: this.startYear }).type(InputType.Number).maxLength(4).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startYear = value)
               TextInput({ placeholder: '月', text: this.startMonth }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startMonth = value)
               TextInput({ placeholder: '日', text: this.startDay }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startDay = value)
               TextInput({ placeholder: '时', text: this.startHour }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.startHour = value)
@@ -278,7 +278,7 @@ export struct ExamPage {
             }.width('100%')
             this.requiredLabel('结束时间')
             Row({ space: 5 }) {
-              TextInput({ placeholder: '年', text: this.endYear }).type(InputType.Number).maxLength(4).layoutWeight(2).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endYear = value)
+              TextInput({ placeholder: '年', text: this.endYear }).type(InputType.Number).maxLength(4).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endYear = value)
               TextInput({ placeholder: '月', text: this.endMonth }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endMonth = value)
               TextInput({ placeholder: '日', text: this.endDay }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endDay = value)
               TextInput({ placeholder: '时', text: this.endHour }).type(InputType.Number).maxLength(2).layoutWeight(1).height(38).fontSize(12).backgroundColor('#F1F6F8').borderRadius(8).onChange((value: string) => this.endHour = value)
