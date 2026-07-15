@@ -26,6 +26,8 @@ import {
   ClassroomMutationRequest,
   CourseDetail,
   CourseSummary,
+  CourseOption,
+  SemesterOption,
   ClassroomRequestPage,
   ClassroomRequestListItem,
   ClassroomRequestMutationRequest
@@ -263,11 +265,22 @@ export class ApiClient {
   }
 
   static async getCourses(keyword: string = '', departmentId?: number): Promise<CourseSummary[]> {
+    const options = await ApiClient.getCourseOptions(keyword, departmentId);
+    return options.map((item: CourseOption): CourseSummary => ({
+      id: item.id, code: item.code, name: item.name, credits: 0
+    }));
+  }
+
+  static async getCourseOptions(keyword: string = '', departmentId?: number): Promise<CourseOption[]> {
     const params: string[] = [];
-    if (keyword.trim().length > 0) params.push(`keyword=${encodeURIComponent(keyword.trim())}`);
     if (departmentId !== undefined && departmentId > 0) params.push(`departmentId=${departmentId}`);
+    if (keyword.trim().length > 0) params.push(`keyword=${encodeURIComponent(keyword.trim())}`);
     const query = params.length > 0 ? `?${params.join('&')}` : '';
-    return ApiClient.request<CourseSummary[]>(`/base-data/courses${query}`, http.RequestMethod.GET, undefined, true);
+    return ApiClient.request<CourseOption[]>(`/base-data/courses/options${query}`, http.RequestMethod.GET, undefined, true);
+  }
+
+  static async getSemesterOptions(): Promise<SemesterOption[]> {
+    return ApiClient.request<SemesterOption[]>('/base-data/semesters/options', http.RequestMethod.GET, undefined, true);
   }
 
   static async getDepartments(keyword: string = ''): Promise<DepartmentInfo[]> {

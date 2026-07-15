@@ -1,5 +1,5 @@
 import { ApiClient } from '../services/ApiClient';
-import { ExamListItem, ExamMutationRequest, CourseSummary, TeacherListItem, StudentOptionClassGroup, ClassroomListItem } from '../models/ApiModels';
+import { ExamListItem, ExamMutationRequest, CourseSummary, TeacherListItem, StudentOptionClassGroup, ClassroomListItem, SemesterOption } from '../models/ApiModels';
 
 @Component
 export struct ExamPage {
@@ -22,6 +22,7 @@ export struct ExamPage {
   @State teachers: TeacherListItem[] = [];
   @State classGroups: StudentOptionClassGroup[] = [];
   @State classrooms: ClassroomListItem[] = [];
+  @State semesters: SemesterOption[] = [];
 
   aboutToAppear(): void { void this.initialize(); }
   private async initialize(): Promise<void> { await this.loadOptions(); await this.load(); }
@@ -31,6 +32,7 @@ export struct ExamPage {
       this.teachers = (await ApiClient.getTeachers(1, 100)).items;
       this.classGroups = await ApiClient.getClassGroups();
       this.classrooms = (await ApiClient.getClassrooms(1, 100)).items;
+      this.semesters = await ApiClient.getSemesterOptions();
     } catch (error) { this.showToast(error instanceof Error ? error.message : '加载考试选项失败'); }
   }
   private cycleId(current: string, values: number[]): string { if (values.length === 0) return ''; const id = Number(current); const index = values.indexOf(id); return `${index < 0 || index >= values.length - 1 ? values[0] : values[index + 1]}`; }
@@ -38,6 +40,7 @@ export struct ExamPage {
   private classGroupLabel(): string { const item = this.classGroups.find((v: StudentOptionClassGroup) => v.id === Number(this.classGroupId)); return item ? item.name : '选择班级组'; }
   private classroomLabel(): string { const item = this.classrooms.find((v: ClassroomListItem) => v.id === Number(this.classroomId)); return item ? `${item.roomNo} ${item.building ?? ''}` : '选择教室'; }
   private teacherLabel(): string { const item = this.teachers.find((v: TeacherListItem) => v.id === Number(this.invigilatorId)); return item ? item.name : '选择监考教师（可选）'; }
+  private semesterLabel(): string { const item = this.semesters.find((v: SemesterOption) => v.id === Number(this.semesterId)); return item ? item.label : '选择学期'; }
   private async load(): Promise<void> { this.loading = true; try { this.exams = (await ApiClient.getExams(1, 100, this.keyword)).items; } catch (error) { this.showToast(error instanceof Error ? error.message : '加载考试安排失败'); } finally { this.loading = false; } }
   private showToast(message: string): void { try { this.getUIContext().getPromptAction().showToast({ message, duration: 2200 }); } catch (_) {} }
   private openCreate(): void { this.editingId = 0; this.semesterId = ''; this.courseId = ''; this.classGroupId = ''; this.classroomId = ''; this.startTime = ''; this.endTime = ''; this.invigilatorId = ''; this.formVisible = true; }
@@ -92,7 +95,7 @@ export struct ExamPage {
         Scroll() {
           Column({ space: 10 }) {
             Text(this.editingId > 0 ? '编辑考试安排' : '新建考试安排').fontSize(20).fontWeight(FontWeight.Bold).fontColor('#17324D').width('100%')
-            TextInput({ placeholder: '学期 ID', text: this.semesterId }).type(InputType.Number).onChange((v: string) => this.semesterId = v)
+            Button(this.semesterLabel()).width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.semesterId = this.cycleId(this.semesterId, this.semesters.map((v: SemesterOption) => v.id)))
             Button(this.courseLabel()).width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.courseId = this.cycleId(this.courseId, this.courses.map((v: CourseSummary) => v.id)))
             Button(this.classGroupLabel()).width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.classGroupId = this.cycleId(this.classGroupId, this.classGroups.map((v: StudentOptionClassGroup) => v.id)))
             Button(this.classroomLabel()).width('100%').backgroundColor('#E4F2F5').fontColor('#176B87').onClick(() => this.classroomId = this.cycleId(this.classroomId, this.classrooms.map((v: ClassroomListItem) => v.id)))

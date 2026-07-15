@@ -1,5 +1,5 @@
 import { ApiClient } from '../services/ApiClient';
-import { CourseDetail } from '../models/ApiModels';
+import { CourseDetail, SemesterOption } from '../models/ApiModels';
 
 @Component
 export struct CourseDetailPage {
@@ -8,8 +8,26 @@ export struct CourseDetailPage {
   @State semesterIdText: string = '';
   @State detail: CourseDetail | null = null;
   @State loading: boolean = false;
+  @State semesters: SemesterOption[] = [];
 
-  aboutToAppear(): void { void this.loadDetail(); }
+  aboutToAppear(): void { void this.initialize(); }
+
+  private async initialize(): Promise<void> {
+    try { this.semesters = await ApiClient.getSemesterOptions(); } catch (_) {}
+    await this.loadDetail();
+  }
+
+  private semesterLabel(): string {
+    const item = this.semesters.find((v: SemesterOption) => v.id === Number(this.semesterIdText));
+    return item ? item.label : '全部学期';
+  }
+
+  private cycleSemester(): void {
+    if (this.semesters.length === 0) return;
+    const current = Number(this.semesterIdText);
+    const index = this.semesters.findIndex((v: SemesterOption) => v.id === current);
+    this.semesterIdText = `${index < 0 || index >= this.semesters.length - 1 ? this.semesters[0].id : this.semesters[index + 1].id}`;
+  }
 
   private async loadDetail(): Promise<void> {
     const semesterText = this.semesterIdText.trim();
@@ -42,7 +60,7 @@ export struct CourseDetailPage {
       Row() { Text('‹').fontSize(32).fontColor('#176B87').width(42).onClick(() => this.backToCourseList()); Text('课程详情').fontSize(22).fontWeight(FontWeight.Bold).fontColor('#17324D').layoutWeight(1); Text('课程信息').fontSize(12).fontColor('#718096') }.width('100%').padding({ left: 18, right: 20, top: 18, bottom: 10 })
       Row({ space: 8 }) {
         Text(`课程 ID：${this.courseId}`).fontSize(14).fontColor('#516B80').layoutWeight(1)
-        TextInput({ placeholder: '学期 ID', text: this.semesterIdText }).type(InputType.Number).layoutWeight(1).height(42).backgroundColor(Color.White).borderRadius(10).onChange((value: string) => this.semesterIdText = value)
+        Button(this.semesterLabel()).layoutWeight(1).height(42).backgroundColor(Color.White).fontColor('#176B87').onClick(() => this.cycleSemester())
         Button(this.loading ? '加载中' : '查询').enabled(!this.loading).height(42).backgroundColor('#176B87').fontColor(Color.White).onClick(() => { void this.loadDetail(); })
       }.width('100%').padding({ left: 20, right: 20, bottom: 12 })
       Scroll() {

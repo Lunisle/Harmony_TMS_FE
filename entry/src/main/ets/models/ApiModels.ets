@@ -162,6 +162,25 @@ export interface CourseSummary {
   directorName?: string | null;
 }
 
+export interface CourseOption {
+  id: number;
+  code: string;
+  name: string;
+  label: string;
+  value: number;
+}
+
+export interface SemesterOption {
+  id: number;
+  code: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  label: string;
+  value: number;
+}
+
 export interface ClassroomRequestListItem {
   id: number;
   applicantId: number;
